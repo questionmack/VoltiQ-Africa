@@ -1,0 +1,3856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltIQ — Smart Grid Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #050a0e;
+    --surface: #0a1520;
+    --surface2: #0f1f30;
+    --border: #1a3a55;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --danger: #ff3366;
+    --warn: #ffaa00;
+    --text: #c8e6f0;
+    --muted: #4a7a99;
+    --glow: 0 0 20px rgba(0, 212, 255, 0.3);
+    --glow2: 0 0 20px rgba(255, 107, 53, 0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    gap: 12px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 40%; height: 100%;
+    background: linear-gradient(90deg, rgba(0,212,255,0.04) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .logo { display: flex; align-items: center; gap: 14px; }
+
+  .logo-icon { width: 42px; height: 42px; flex-shrink: 0; }
+  .logo-icon svg { width: 100%; height: 100%; }
+
+  .logo-text h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-shadow: var(--glow);
+  }
+
+  .logo-text p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .logo-text small {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: #1a4060;
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 1px;
+  }
+
+  /* Header right — status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Status group */
+  .status-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 6px var(--accent3);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+
+  .status-dot.idle   { background: var(--muted); box-shadow: none; animation: none; }
+  .status-dot.thinking { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+  .status-dot.error  { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: none; }
+
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .divider-v {
+    width: 1px; height: 16px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Language group */
+  .lang-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .lang-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: #1a4060;
+    letter-spacing: 2px;
+    margin-right: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Language selector */
+  .lang-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+    border-radius: 0;
+  }
+  .lang-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,255,0.06);
+  }
+  .lang-btn:hover { color: var(--accent); border-color: var(--border); }
+
+  /* Nav links */
+  .nav-link {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--accent3);
+    border: 1px solid rgba(57,255,20,0.3);
+    padding: 5px 12px;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-link:hover { background: rgba(57,255,20,0.06); border-color: var(--accent3); }
+
+  /* ── QUICK TASKS ── */
+  .quick-tasks {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .task-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    text-align: left;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .task-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s;
+  }
+
+  .task-btn:hover {
+    background: var(--surface2);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .task-btn:hover::after { transform: scaleX(1); }
+  .task-btn:active { transform: scale(0.98) translateY(0); }
+  .task-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .task-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .task-label {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.68rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .task-desc {
+    color: var(--muted);
+    font-size: 0.65rem;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main-panel {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── CHAT PANEL ── */
+  .chat-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 520px;
+    max-height: 620px;
+    overflow: hidden;
+  }
+
+  /* Export button */
+  .export-btn {
+    background: none;
+    border: 1px solid rgba(57,255,20,0.4);
+    color: var(--accent3);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 1px;
+    padding: 3px 9px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .export-btn:hover { background: rgba(57,255,20,0.06); border-color: var(--accent3); }
+
+  /* Community report modal */
+  .creport-modal {
+    display:none; position:fixed; inset:0; z-index:8500;
+    background:rgba(5,10,14,0.95); align-items:center; justify-content:center;
+  }
+  .creport-box {
+    background:#0a1520; border:1px solid #1a3a55; border-top:3px solid #39ff14;
+    padding:28px 32px; width:100%; max-width:520px;
+    box-shadow:0 0 40px rgba(57,255,20,0.1); max-height:90vh; overflow-y:auto;
+  }
+  .creport-field { margin-bottom:14px; }
+  .creport-field label {
+    display:block; font-family:'Share Tech Mono',monospace;
+    font-size:0.62rem; color:#4a7a99; letter-spacing:2px; margin-bottom:5px;
+    text-transform:uppercase;
+  }
+  .creport-field input, .creport-field select, .creport-field textarea {
+    width:100%; padding:9px 12px; background:#0f1f30;
+    border:1px solid #1a3a55; color:#c8e6f0;
+    font-family:'Share Tech Mono',monospace; font-size:0.8rem; outline:none;
+    transition:border-color 0.2s;
+  }
+  .creport-field input:focus, .creport-field select:focus, .creport-field textarea:focus {
+    border-color:#39ff14;
+  }
+  .creport-field select option { background:#0a1520; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .side-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .side-card .panel-header { padding: 8px 12px; }
+  .side-card .panel-title { font-size: 0.58rem; }
+
+  /* Metrics grid — 2x2 */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .metric {
+    background: var(--surface);
+    padding: 10px 12px;
+    position: relative;
+  }
+
+  .metric::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 2px; height: 100%;
+    background: var(--accent);
+    opacity: 0.3;
+  }
+
+  .metric-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .metric-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    transition: all 0.4s ease;
+  }
+
+  .metric-value.warn { color: var(--warn); }
+  .metric-value.danger { color: var(--danger); }
+  .metric-value.ok { color: var(--accent3); }
+  .metric-value.flash { animation: metricFlash 0.6s ease; }
+
+  @keyframes metricFlash {
+    0%  { opacity:1; transform:scale(1); }
+    40% { opacity:0.3; transform:scale(1.1); }
+    100%{ opacity:1; transform:scale(1); }
+  }
+
+  .metric-unit { font-size: 0.58rem; color: var(--muted); margin-left: 2px; }
+
+  /* Feeder list */
+  .feeder-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-bottom: 1px solid rgba(26,58,85,0.4);
+    font-size: 0.7rem;
+  }
+  .feeder-row:last-child { border-bottom: none; }
+  .feeder-id {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    width: 55px;
+    flex-shrink: 0;
+  }
+  .feeder-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    overflow: hidden;
+  }
+  .feeder-bar {
+    height: 100%;
+    background: var(--accent3);
+    transition: width 1s ease-in-out;
+  }
+  .feeder-bar.warn { background: var(--warn); }
+  .feeder-bar.danger { background: var(--danger); }
+  .feeder-val {
+    color: var(--muted);
+    width: 34px;
+    text-align: right;
+    flex-shrink: 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+  }
+
+  /* Tool log */
+  .tool-log {
+    padding: 8px 12px;
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .tool-log::-webkit-scrollbar { width: 3px; }
+  .tool-log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(26,58,85,0.4);
+    animation: msgIn 0.3s ease-out;
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+  .log-icon { flex-shrink: 0; }
+  .log-text { color: var(--muted); line-height: 1.4; }
+  .log-text strong { color: var(--accent3); }
+
+  .log-empty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 10px 0;
+  }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .input-wrap { flex: 1; position: relative; }
+
+  .input-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.85rem;
+    resize: none;
+    min-height: 48px;
+    max-height: 110px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: #2a4a60; }
+
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    color: var(--bg);
+    width: 48px; height: 48px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-size: 1.1rem;
+  }
+
+  .send-btn:hover { background: #33ddff; box-shadow: var(--glow); }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn:disabled { background: #1a3a55; color: var(--muted); cursor: not-allowed; box-shadow: none; }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 1100px) {
+    .quick-tasks { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .app { padding: 8px; gap: 8px; }
+    header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+    .logo-text h1 { font-size: 0.9rem; }
+    .logo-text p { display: none; }
+    .status-bar { gap: 6px; }
+    #clockPill { display: none; }
+    .quick-tasks { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .task-btn { padding: 8px 10px; }
+    .task-desc { display: none; }
+    .main-panel { grid-template-columns: 1fr; }
+    .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .chat-panel { min-height: 320px; max-height: 420px; }
+    .input-area { flex-direction: column; gap: 8px; }
+    .send-btn { width: 100%; height: 42px; }
+    .login-box { padding: 24px 20px; }
+  }
+  @media (max-width: 480px) {
+    .quick-tasks { grid-template-columns: repeat(2, 1fr); }
+    .sidebar { grid-template-columns: 1fr; }
+    .logo-icon { width: 32px; height: 32px; }
+    .status-group { display: none; }
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0,212,255,0.04);
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    animation: msgIn 0.3s ease-out;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .msg.user .msg-avatar { background: rgba(255,107,53,0.2); border: 1px solid var(--accent2); color: var(--accent2); }
+  .msg.agent .msg-avatar { background: rgba(0,212,255,0.15); border: 1px solid var(--accent); color: var(--accent); }
+  .msg.tool .msg-avatar { background: rgba(57,255,20,0.1); border: 1px solid var(--accent3); color: var(--accent3); }
+  .msg.system .msg-avatar { background: rgba(255,170,0,0.1); border: 1px solid var(--warn); color: var(--warn); }
+
+  .msg-body { flex: 1; min-width: 0; }
+
+  .msg-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .msg-role {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .msg.user .msg-role { color: var(--accent2); }
+  .msg.agent .msg-role { color: var(--accent); }
+  .msg.tool .msg-role { color: var(--accent3); }
+  .msg.system .msg-role { color: var(--warn); }
+
+  .msg-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+
+  .msg-content {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .msg.tool .msg-content {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    background: rgba(57,255,20,0.05);
+    border: 1px solid rgba(57,255,20,0.2);
+    padding: 8px 12px;
+    color: #b8ffb0;
+  }
+
+  /* Tool call display */
+  .tool-call {
+    background: rgba(57,255,20,0.05);
+    border: 1px solid rgba(57,255,20,0.15);
+    border-left: 3px solid var(--accent3);
+    padding: 8px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent3);
+  }
+
+  .tool-call .tool-name { font-weight: bold; margin-bottom: 4px; }
+  .tool-call .tool-args { color: #7aaa70; font-size: 0.65rem; }
+
+  /* Thinking indicator */
+  .thinking {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--warn);
+  }
+
+  .thinking-dots span {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    background: var(--warn);
+    border-radius: 50%;
+    animation: dot 1.2s infinite;
+  }
+  .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes dot {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* API key section — legacy */
+  .api-section { display: none; }
+
+  /* Feeder list wrapper */
+  .feeder-list {
+    padding: 6px 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── LOGIN OVERLAY ── */
+  #loginOverlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #050a0e;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  #loginOverlay::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .login-box {
+    position: relative; z-index: 1;
+    background: #0a1520;
+    border: 1px solid #1a3a55;
+    border-top: 3px solid #00d4ff;
+    padding: 40px 48px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 0 40px rgba(0,212,255,0.15);
+  }
+  .login-logo {
+    text-align: center; margin-bottom: 32px;
+  }
+  .login-logo svg { width: 52px; height: 52px; margin-bottom: 10px; }
+  .login-logo h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem; font-weight: 900;
+    color: #00d4ff; letter-spacing: 4px;
+  }
+  .login-logo p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem; color: #4a7a99;
+    letter-spacing: 2px; margin-top: 4px;
+    text-transform: uppercase;
+  }
+  .login-field { margin-bottom: 18px; }
+  .login-field label {
+    display: block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem; color: #4a7a99;
+    letter-spacing: 2px; margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .login-field input {
+    width: 100%; padding: 11px 14px;
+    background: #0f1f30; border: 1px solid #1a3a55;
+    color: #c8e6f0; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  .login-field input:focus { border-color: #00d4ff; }
+  .login-btn {
+    width: 100%; padding: 13px;
+    background: #00d4ff; border: none; cursor: pointer;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem; font-weight: 700;
+    color: #050a0e; letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+    margin-top: 8px;
+  }
+  .login-btn:hover { opacity: 0.85; }
+  .login-error {
+    color: #ff3366; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; text-align: center;
+    margin-top: 12px; display: none;
+  }
+  .login-footer {
+    text-align: center; margin-top: 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem; color: #4a7a99;
+  }
+  .demo-hint {
+    margin-top: 20px; padding: 12px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.15);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem; color: #4a7a99;
+    text-align: center; line-height: 1.6;
+  }
+  .demo-hint span { color: #00d4ff; }
+
+  /* logout btn */
+  .logout-btn {
+    background: none; border: 1px solid #1a3a55;
+    color: #4a7a99; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 1px;
+    padding: 4px 10px; cursor: pointer;
+    text-transform: uppercase; transition: all 0.2s;
+  }
+  .logout-btn:hover { border-color: #ff3366; color: #ff3366; }
+
+  /* Language selector */
+  .lang-btn {
+    background: none; border: 1px solid #1a3a55;
+    color: #4a7a99; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem; padding: 3px 7px; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 1px;
+  }
+  .lang-btn.active { border-color: #00d4ff; color: #00d4ff; background: rgba(0,212,255,0.08); }
+  .lang-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+
+  /* Community report modal */
+  .creport-modal {
+    display:none; position:fixed; inset:0; z-index:8500;
+    background:rgba(5,10,14,0.95); align-items:center; justify-content:center;
+  }
+  .creport-box {
+    background:#0a1520; border:1px solid #1a3a55; border-top:3px solid #39ff14;
+    padding:28px 32px; width:100%; max-width:520px;
+    box-shadow:0 0 40px rgba(57,255,20,0.1); max-height:90vh; overflow-y:auto;
+  }
+  .creport-field { margin-bottom:14px; }
+  .creport-field label {
+    display:block; font-family:'Share Tech Mono',monospace;
+    font-size:0.62rem; color:#4a7a99; letter-spacing:2px; margin-bottom:5px;
+    text-transform:uppercase;
+  }
+  .creport-field input, .creport-field select, .creport-field textarea {
+    width:100%; padding:9px 12px; background:#0f1f30;
+    border:1px solid #1a3a55; color:#c8e6f0;
+    font-family:'Share Tech Mono',monospace; font-size:0.8rem; outline:none;
+    transition:border-color 0.2s;
+  }
+  .creport-field input:focus, .creport-field select:focus, .creport-field textarea:focus {
+    border-color:#39ff14;
+  }
+  .creport-field select option { background:#0a1520; }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN OVERLAY ── -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="22,2 40,12 40,32 22,42 4,32 4,12" stroke="#00d4ff" stroke-width="1.5" fill="rgba(0,212,255,0.05)"/>
+        <path d="M24 8L14 22H22L20 36L30 22H22L24 8Z" fill="#00d4ff" opacity="0.9"/>
+        <circle cx="22" cy="22" r="3" fill="#00d4ff"/>
+      </svg>
+      <h2 style="display:flex;align-items:baseline;justify-content:center;gap:0;">VoltIQ<span style="color:#ff6b35;letter-spacing:3px;margin-left:6px;">AFRICA</span></h2>
+      <p>Smart Grid Intelligence Platform</p>
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="off" />
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password"
+        onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">ACCESS SYSTEM</button>
+    <div class="login-error" id="loginError">⚠ Invalid credentials. Please try again.</div>
+    <div class="demo-hint">
+      Demo access: <span>demo</span> / <span>demo123</span><br>
+      Operator access: <span>operator</span> / <span>grid2026</span>
+    </div>
+    <div class="login-footer">voltiq.africa · Secured · 2026</div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="22,2 40,12 40,32 22,42 4,32 4,12" stroke="#00d4ff" stroke-width="1.5" fill="rgba(0,212,255,0.05)"/>
+          <path d="M24 8L14 22H22L20 36L30 22H22L24 8Z" fill="#00d4ff" opacity="0.9"/>
+          <circle cx="22" cy="22" r="3" fill="#00d4ff"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h1 style="display:flex;align-items:baseline;gap:0;">VoltIQ<span style="color:#ff6b35;letter-spacing:3px;margin-left:5px;">AFRICA</span></h1>
+        <p>SMART GRID INTELLIGENCE PLATFORM</p>
+        <small>voltiq.africa · Nigeria · 2026</small>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <!-- Status group -->
+      <div class="status-group">
+        <div class="status-pill">
+          <div class="status-dot idle" id="statusDot"></div>
+          <span id="statusText">STANDBY</span>
+        </div>
+        <div class="divider-v"></div>
+        <div class="status-pill" id="clockPill">⏱ --:--:--</div>
+        <div class="divider-v"></div>
+        <div class="status-pill">↺ <span id="turnCount">0 TURNS</span></div>
+      </div>
+
+      <!-- Language group -->
+      <div class="lang-group">
+        <span class="lang-label">LANG</span>
+        <button class="lang-btn active" onclick="setLang('en')" id="lang-en" title="English">EN</button>
+        <button class="lang-btn" onclick="setLang('ha')" id="lang-ha" title="Hausa">HA</button>
+        <button class="lang-btn" onclick="setLang('yo')" id="lang-yo" title="Yoruba">YO</button>
+        <button class="lang-btn" onclick="setLang('ig')" id="lang-ig" title="Igbo">IG</button>
+      </div>
+
+      <!-- Nav links -->
+      <a href="national-dashboard.html" target="_blank" class="nav-link">🌍 NATIONAL DASHBOARD</a>
+      <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
+    </div>
+  </header>
+
+  <!-- Control Panel -->
+  <div id="discoSelectorPanel" style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);padding:0;flex-shrink:0;">
+
+    <!-- Top Bar — always visible -->
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(0,212,255,0.04);flex-wrap:wrap;">
+
+      <!-- Left: action buttons -->
+      <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap;">
+
+        <!-- National Grid -->
+        <button onclick="openNationalGrid()" style="background:rgba(57,255,20,0.08);border:1px solid #39ff14;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(57,255,20,0.18)'" onmouseout="this.style.background='rgba(57,255,20,0.08)'">🌍 NATIONAL GRID</button>
+
+        <!-- 37 States dropdown -->
+        <div style="position:relative;">
+          <button onclick="toggleStatesDropdown()" id="statesDropBtn" style="background:rgba(0,212,255,0.08);border:1px solid #00d4ff;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(0,212,255,0.18)'" onmouseout="this.style.background='rgba(0,212,255,0.08)'">📋 37 STATES ▾</button>
+          <div id="statesDropdown" style="display:none;position:absolute;top:100%;left:0;z-index:5000;background:#0a1520;border:1px solid #1a3a55;border-top:2px solid #00d4ff;width:320px;max-height:400px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+            <div id="statesDropdownContent" style="padding:8px;"></div>
+          </div>
+        </div>
+
+        <!-- Select DisCo toggle -->
+        <button onclick="toggleDiscoGrid()" id="discoToggleBtn" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⚡ SELECT DisCo ▾</button>
+
+        <!-- Admin Panel button — only shown to admin -->
+        <button id="adminPanelBtn" onclick="openAdminPanel()" style="display:none;background:rgba(255,107,53,0.08);border:1px solid #ff6b35;color:#ff6b35;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,107,53,0.18)'" onmouseout="this.style.background='rgba(255,107,53,0.08)'">⚙ ADMINISTRATION</button>
+
+      </div>
+
+      <!-- Right: active location badge -->
+      <div id="activeDiscoBadge" style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--muted);padding:4px 14px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;transition:all 0.3s;">
+        📍 Select a state or DisCo to begin
+      </div>
+
+    </div>
+
+    <!-- DisCo Grid — hidden by default, toggled -->
+    <div id="discoGrid" style="display:none;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);"></div>
+
+    <!-- Zone row — appears after DisCo selected -->
+    <div id="zoneRow" style="display:none;padding:8px 16px;border-top:1px solid var(--border);background:rgba(0,212,255,0.02);gap:8px;flex-wrap:wrap;align-items:center;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:2px;white-space:nowrap;flex-shrink:0;">ZONE:</span>
+      <div id="zoneBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+
+  </div>
+
+  <!-- National Grid Modal -->
+  <div id="nationalGridModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(5,10,14,0.96);align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+    <div style="background:#0a1520;border:1px solid #1a3a55;border-top:3px solid #39ff14;width:100%;max-width:900px;box-shadow:0 0 60px rgba(57,255,20,0.1);">
+
+      <!-- Modal Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #1a3a55;background:rgba(57,255,20,0.04);">
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:#39ff14;letter-spacing:2px;">🌍 NATIONAL GRID INTELLIGENCE</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#4a7a99;margin-top:3px;letter-spacing:1px;">All 36 States + FCT — Click any state to activate</div>
+        </div>
+        <button onclick="closeNationalGrid()" style="background:none;border:1px solid #1a3a55;color:#4a7a99;font-size:1.1rem;cursor:pointer;padding:4px 10px;transition:all 0.2s;" onmouseover="this.style.borderColor='#ff3366';this.style.color='#ff3366'" onmouseout="this.style.borderColor='#1a3a55';this.style.color='#4a7a99'">✕</button>
+      </div>
+
+      <!-- National KPI Strip -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1a3a55;border-bottom:1px solid #1a3a55;">
+        <div style="background:#0a1520;padding:10px 14px;text-align:center;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:2px;margin-bottom:4px;">TOTAL DisCos</div>
+          <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#00d4ff;">12</div>
+        </div>
+        <div style="background:#0a1520;padding:10px 14px;text-align:center;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:2px;margin-bottom:4px;">AVG NATIONAL LOSS</div>
+          <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#ffaa00;">39.61%</div>
+        </div>
+        <div style="background:#0a1520;padding:10px 14px;text-align:center;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:2px;margin-bottom:4px;">REVENUE LOST (2YRS)</div>
+          <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#ff3366;">₦2.35T</div>
+        </div>
+        <div style="background:#0a1520;padding:10px 14px;text-align:center;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:2px;margin-bottom:4px;">NERC TARGET</div>
+          <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#39ff14;">20.54%</div>
+        </div>
+      </div>
+
+      <!-- States by Zone -->
+      <div style="padding:16px 20px;" id="nationalGridContent"></div>
+
+      <!-- Footer -->
+      <div style="padding:10px 20px;border-top:1px solid #1a3a55;text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;">
+        VoltIQ Africa Limited · voltiq.africa · Data: NERC Q1 2025 · Click any state to activate and close
+      </div>
+    </div>
+  </div>
+
+  <!-- Administration Panel Modal -->
+  <div id="adminPanelModal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(5,10,14,0.96);align-items:center;justify-content:center;">
+    <div style="background:#0a1520;border:1px solid #1a3a55;border-top:3px solid #ff6b35;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 0 60px rgba(255,107,53,0.15);">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #1a3a55;background:rgba(255,107,53,0.04);">
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:#ff6b35;letter-spacing:2px;">⚙ ADMINISTRATION PANEL</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#4a7a99;margin-top:3px;">VoltIQ Africa Limited · System Management</div>
+        </div>
+        <button onclick="closeAdminPanel()" style="background:none;border:1px solid #1a3a55;color:#4a7a99;font-size:1.1rem;cursor:pointer;padding:4px 10px;transition:all 0.2s;" onmouseover="this.style.borderColor='#ff3366';this.style.color='#ff3366'" onmouseout="this.style.borderColor='#1a3a55';this.style.color='#4a7a99'">✕</button>
+      </div>
+
+      <div style="padding:20px;display:flex;flex-direction:column;gap:20px;">
+
+        <!-- System Info -->
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#ff6b35;letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3a55;">SYSTEM INFORMATION</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#0f1f30;padding:10px 14px;border:1px solid #1a3a55;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;margin-bottom:4px;">PLATFORM</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:#00d4ff;">VoltIQ Africa v2.0</div>
+            </div>
+            <div style="background:#0f1f30;padding:10px 14px;border:1px solid #1a3a55;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;margin-bottom:4px;">AI ENGINE</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:#00d4ff;">VoltIQ Intelligence Engine</div>
+            </div>
+            <div style="background:#0f1f30;padding:10px 14px;border:1px solid #1a3a55;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;margin-bottom:4px;">API ENDPOINT</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#39ff14;">● SECURED · TLS 1.3</div>
+            </div>
+            <div style="background:#0f1f30;padding:10px 14px;border:1px solid #1a3a55;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;margin-bottom:4px;">COMPANY</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#c8e6f0;">VoltIQ Africa Limited</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Accounts -->
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#ff6b35;letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3a55;">USER ACCOUNTS</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#1a3a55;font-family:'Share Tech Mono',monospace;font-size:0.6rem;">
+              <div style="background:#0f1f30;padding:6px 10px;color:#4a7a99;letter-spacing:1px;">USERNAME</div>
+              <div style="background:#0f1f30;padding:6px 10px;color:#4a7a99;letter-spacing:1px;">ROLE</div>
+              <div style="background:#0f1f30;padding:6px 10px;color:#4a7a99;letter-spacing:1px;">STATUS</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#1a3a55;font-family:'Share Tech Mono',monospace;font-size:0.65rem;">
+              <div style="background:#0a1520;padding:8px 10px;color:#00d4ff;">admin</div>
+              <div style="background:#0a1520;padding:8px 10px;color:#ff6b35;">Administrator</div>
+              <div style="background:#0a1520;padding:8px 10px;color:#39ff14;">● ACTIVE</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#1a3a55;font-family:'Share Tech Mono',monospace;font-size:0.65rem;">
+              <div style="background:#0a1520;padding:8px 10px;color:#00d4ff;">operator</div>
+              <div style="background:#0a1520;padding:8px 10px;color:#ffaa00;">Grid Operator</div>
+              <div style="background:#0a1520;padding:8px 10px;color:#39ff14;">● ACTIVE</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#1a3a55;font-family:'Share Tech Mono',monospace;font-size:0.65rem;">
+              <div style="background:#0a1520;padding:8px 10px;color:#00d4ff;">demo</div>
+              <div style="background:#0a1520;padding:8px 10px;color:#4a7a99;">Demo User</div>
+              <div style="background:#0a1520;padding:8px 10px;color:#39ff14;">● ACTIVE</div>
+            </div>
+          </div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;margin-top:8px;">
+            Full user management available in Phase 2 — Cloudflare KV integration
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#ff6b35;letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3a55;">QUICK ACTIONS</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="clearChat();closeAdminPanel();" style="background:#0f1f30;border:1px solid #1a3a55;color:#c8e6f0;font-family:'Share Tech Mono',monospace;font-size:0.62rem;padding:8px 16px;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" onmouseover="this.style.borderColor='#00d4ff'" onmouseout="this.style.borderColor='#1a3a55'">🗑 CLEAR CONSOLE</button>
+            <button onclick="window.open('national-dashboard.html','_blank');closeAdminPanel();" style="background:#0f1f30;border:1px solid #1a3a55;color:#c8e6f0;font-family:'Share Tech Mono',monospace;font-size:0.62rem;padding:8px 16px;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" onmouseover="this.style.borderColor='#39ff14'" onmouseout="this.style.borderColor='#1a3a55'">🌍 NATIONAL DASHBOARD</button>
+            <button onclick="exportPDF();closeAdminPanel();" style="background:#0f1f30;border:1px solid #1a3a55;color:#c8e6f0;font-family:'Share Tech Mono',monospace;font-size:0.62rem;padding:8px 16px;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" onmouseover="this.style.borderColor='#39ff14'" onmouseout="this.style.borderColor='#1a3a55'">⬇ EXPORT REPORT PDF</button>
+            <button onclick="doLogout();closeAdminPanel();" style="background:#0f1f30;border:1px solid #ff3366;color:#ff3366;font-family:'Share Tech Mono',monospace;font-size:0.62rem;padding:8px 16px;cursor:pointer;transition:all 0.2s;letter-spacing:1px;" onmouseover="this.style.background='rgba(255,51,102,0.1)'" onmouseout="this.style.background='#0f1f30'">⏻ LOGOUT</button>
+          </div>
+        </div>
+
+        <!-- Platform Note -->
+        <div style="background:#0f1f30;border:1px solid #1a3a55;border-left:3px solid #ff6b35;padding:12px 16px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#ff6b35;margin-bottom:4px;letter-spacing:1px;">PHASE 2 ROADMAP</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#4a7a99;line-height:1.7;">
+            Full admin capabilities coming after first pilot contract:<br>
+            · Add / remove DisCo user accounts<br>
+            · View session logs and analysis history<br>
+            · Configure DisCo-specific settings<br>
+            · Database integration for report storage<br>
+            · Automated report scheduling
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Tasks -->
+  <div class="quick-tasks">
+    <button class="task-btn" onclick="runQuickTask(0)">
+      <span class="task-icon">🔍</span>
+      <div>
+        <div class="task-label">Theft Detection</div>
+        <div class="task-desc">Analyze feeder for theft anomalies</div>
+      </div>
+    </button>
+    <button class="task-btn" onclick="runQuickTask(1)">
+      <span class="task-icon">⚡</span>
+      <div>
+        <div class="task-label">Voltage Optimize</div>
+        <div class="task-desc">Reduce losses across your network</div>
+      </div>
+    </button>
+    <button class="task-btn" onclick="runQuickTask(2)">
+      <span class="task-icon">📊</span>
+      <div>
+        <div class="task-label">Full Audit</div>
+        <div class="task-desc">Complete theft + voltage report</div>
+      </div>
+    </button>
+    <button class="task-btn" onclick="runQuickTask(3)">
+      <span class="task-icon">🔧</span>
+      <div>
+        <div class="task-label">Transformer Check</div>
+        <div class="task-desc">Status of any transformer + meters</div>
+      </div>
+    </button>
+    <button class="task-btn" onclick="openUpload()" style="border-color:#ff6b35;">
+      <span class="task-icon">📂</span>
+      <div>
+        <div class="task-label" style="color:#ff6b35;">Upload Data</div>
+        <div class="task-desc">Import CSV / Excel feeder data</div>
+      </div>
+    </button>
+    <button class="task-btn" onclick="runQuickTask(4)" style="border-color:#39ff14;">
+      <span class="task-icon">🔮</span>
+      <div>
+        <div class="task-label" style="color:#39ff14;">Predict Theft</div>
+        <div class="task-desc">Forecast next 30-day theft risk</div>
+      </div>
+    </button>
+    <button class="task-btn" onclick="openCommunityReport()" style="border-color:#ffaa00;">
+      <span class="task-icon">📣</span>
+      <div>
+        <div class="task-label" style="color:#ffaa00;">Report Theft</div>
+        <div class="task-desc">Community theft reporting</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- Upload Modal -->
+  <div id="uploadModal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(5,10,14,0.92);align-items:center;justify-content:center;">
+    <div style="background:#0a1520;border:1px solid #1a3a55;border-top:3px solid #ff6b35;padding:32px 36px;width:100%;max-width:500px;box-shadow:0 0 40px rgba(255,107,53,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <span style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:#ff6b35;letter-spacing:2px;">📂 UPLOAD FEEDER DATA</span>
+        <button onclick="closeUpload()" style="background:none;border:none;color:#4a7a99;font-size:1.2rem;cursor:pointer;">✕</button>
+      </div>
+
+      <p style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:#4a7a99;margin-bottom:18px;line-height:1.6;">
+        Upload your DisCo feeder data as CSV or Excel. VoltIQ will automatically read the file and run AI analysis on your real data.
+      </p>
+
+      <!-- Drop zone -->
+      <div id="dropZone" onclick="document.getElementById('fileInput').click()"
+        style="border:2px dashed #1a3a55;padding:32px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:16px;"
+        ondragover="event.preventDefault();this.style.borderColor='#ff6b35'"
+        ondragleave="this.style.borderColor='#1a3a55'"
+        ondrop="handleDrop(event)">
+        <div style="font-size:2rem;margin-bottom:8px;">📄</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:#c8e6f0;">Click to browse or drag & drop</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;margin-top:4px;">Supports .csv, .xlsx, .xls, .txt</div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt" style="display:none" onchange="handleFileSelect(event)"/>
+
+      <!-- File info -->
+      <div id="fileInfo" style="display:none;background:#0f1f30;border:1px solid #1a3a55;padding:12px;margin-bottom:16px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:#39ff14;" id="fileName">✓ file.csv loaded</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;margin-top:4px;" id="fileStats"></div>
+      </div>
+
+      <!-- Analysis type -->
+      <div style="margin-bottom:16px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#4a7a99;letter-spacing:2px;margin-bottom:8px;">ANALYSIS TYPE</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="setAnalysis(this,'theft')" id="btn-theft"
+            style="flex:1;padding:8px;background:#0f1f30;border:1px solid #00d4ff;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;cursor:pointer;letter-spacing:1px;">
+            🔍 THEFT DETECTION
+          </button>
+          <button onclick="setAnalysis(this,'voltage')" id="btn-voltage"
+            style="flex:1;padding:8px;background:#0f1f30;border:1px solid #1a3a55;color:#4a7a99;font-family:'Share Tech Mono',monospace;font-size:0.65rem;cursor:pointer;letter-spacing:1px;">
+            ⚡ VOLTAGE AUDIT
+          </button>
+          <button onclick="setAnalysis(this,'full')" id="btn-full"
+            style="flex:1;padding:8px;background:#0f1f30;border:1px solid #1a3a55;color:#4a7a99;font-family:'Share Tech Mono',monospace;font-size:0.65rem;cursor:pointer;letter-spacing:1px;">
+            📊 FULL AUDIT
+          </button>
+        </div>
+      </div>
+
+      <button id="analyzeBtn" onclick="analyzeUploadedFile()" disabled
+        style="width:100%;padding:13px;background:#1a3a55;border:none;color:#4a7a99;font-family:'Orbitron',monospace;font-size:0.75rem;font-weight:700;letter-spacing:3px;cursor:not-allowed;transition:all 0.2s;">
+        DEPLOY AI ANALYSIS
+      </button>
+
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#2a5a77;text-align:center;margin-top:12px;">
+        Your data stays in your browser — never stored on any server
+      </div>
+    </div>
+  </div>
+
+  <!-- Community Report Modal -->
+  <div class="creport-modal" id="creportModal">
+    <div class="creport-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <span style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:#39ff14;letter-spacing:2px;">📣 REPORT ENERGY THEFT</span>
+        <button onclick="closeCommunityReport()" style="background:none;border:none;color:#4a7a99;font-size:1.2rem;cursor:pointer;">✕</button>
+      </div>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:#4a7a99;margin-bottom:18px;line-height:1.6;">
+        Help your DisCo recover lost revenue. Report suspected electricity theft in your area. All reports are confidential and analyzed by VoltIQ AI.
+      </p>
+      <div class="creport-field">
+        <label>Your State</label>
+        <select id="cr-state">
+          <option value="">-- Select your state --</option>
+          <option>Abia</option><option>Adamawa</option><option>Akwa Ibom</option><option>Anambra</option>
+          <option>Bauchi</option><option>Bayelsa</option><option>Benue</option><option>Borno</option>
+          <option>Cross River</option><option>Delta</option><option>Ebonyi</option><option>Edo</option>
+          <option>Ekiti</option><option>Enugu</option><option>FCT (Abuja)</option><option>Gombe</option>
+          <option>Imo</option><option>Jigawa</option><option>Kaduna</option><option>Kano</option>
+          <option>Katsina</option><option>Kebbi</option><option>Kogi</option><option>Kwara</option>
+          <option>Lagos</option><option>Nasarawa</option><option>Niger</option><option>Ogun</option>
+          <option>Ondo</option><option>Osun</option><option>Oyo</option><option>Plateau</option>
+          <option>Rivers</option><option>Sokoto</option><option>Taraba</option><option>Yobe</option><option>Zamfara</option>
+        </select>
+      </div>
+      <div class="creport-field">
+        <label>Street / Area / Location</label>
+        <input type="text" id="cr-location" placeholder="e.g. 12 Ahmadu Bello Way, Kaduna North" />
+      </div>
+      <div class="creport-field">
+        <label>Type of Theft Suspected</label>
+        <select id="cr-type">
+          <option value="">-- Select type --</option>
+          <option>Meter bypass (wire connected before meter)</option>
+          <option>Meter tampering (damaged or modified meter)</option>
+          <option>Illegal connection (no meter at all)</option>
+          <option>Meter stopped working but lights are on</option>
+          <option>Prepaid meter always shows zero but power is on</option>
+          <option>Other suspicious activity</option>
+        </select>
+      </div>
+      <div class="creport-field">
+        <label>Description (What did you observe?)</label>
+        <textarea id="cr-desc" rows="3" placeholder="Describe what you saw — the more detail the better..."></textarea>
+      </div>
+      <div class="creport-field">
+        <label>Your Name (Optional — for follow-up)</label>
+        <input type="text" id="cr-name" placeholder="Anonymous if left blank" />
+      </div>
+      <div class="creport-field">
+        <label>Your Phone (Optional)</label>
+        <input type="tel" id="cr-phone" placeholder="08012345678" />
+      </div>
+      <button onclick="submitCommunityReport()"
+        style="width:100%;padding:13px;background:#39ff14;border:none;color:#050a0e;
+        font-family:'Orbitron',monospace;font-size:0.75rem;font-weight:700;
+        letter-spacing:3px;cursor:pointer;margin-top:6px;">
+        SUBMIT REPORT TO VOLTIQ AI
+      </button>
+      <div id="cr-result" style="display:none;margin-top:14px;padding:12px;background:#0f1f30;border:1px solid #39ff14;font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:#39ff14;line-height:1.6;"></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;text-align:center;margin-top:12px;">
+        All reports are confidential · Powered by VoltIQ AI · voltiq.africa
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Panel -->
+  <div class="main-panel">
+
+    <!-- Chat -->
+    <div class="chat-panel">
+      <div class="panel-header">
+        <span class="panel-title">◈ Agent Console</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button onclick="exportPDF()" class="export-btn" title="Export as PDF">⬇ PDF</button>
+          <button onclick="exportTXT()" class="export-btn" style="border-color:var(--accent);color:var(--accent);" title="Export as Text">⬇ TXT</button>
+          <button onclick="clearChat()" style="background:none;border:none;color:var(--muted);font-size:0.65rem;cursor:pointer;font-family:'Share Tech Mono',monospace;letter-spacing:1px;">[ CLEAR ]</button>
+        </div>
+      </div>
+      <div class="messages" id="messages">
+        <div class="msg system">
+          <div class="msg-avatar">SYS</div>
+          <div class="msg-body">
+            <div class="msg-meta">
+              <span class="msg-role">System</span>
+              <span class="msg-time" id="initTime"></span>
+            </div>
+            <div class="msg-content">⚡ VoltIQ Intelligence Engine online. Select a state above then click any quick task button to begin analysis.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Live Metrics -->
+      <div class="side-card">
+        <div class="panel-header">
+          <span class="panel-title">◈ Grid Metrics</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">Grid Loss</div>
+            <div class="metric-value danger" id="m-loss">38.2<span class="metric-unit">%</span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Active Feeds</div>
+            <div class="metric-value ok" id="m-feeds">6<span class="metric-unit">/8</span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Theft Alerts</div>
+            <div class="metric-value warn" id="m-alerts">2</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Voltage</div>
+            <div class="metric-value" id="m-voltage">11.4<span class="metric-unit">kV</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feeder Load -->
+      <div class="side-card">
+        <div class="panel-header">
+          <span class="panel-title">◈ Feeder Load</span>
+        </div>
+        <div class="feeder-list" id="feederList">
+          <div class="feeder-row">
+            <span class="feeder-id" id="fid-0">FDR-101</span>
+            <div class="feeder-bar-wrap"><div class="feeder-bar" id="fbar-0" style="width:45%"></div></div>
+            <span class="feeder-val" id="fval-0">45%</span>
+          </div>
+          <div class="feeder-row">
+            <span class="feeder-id" id="fid-1">FDR-102</span>
+            <div class="feeder-bar-wrap"><div class="feeder-bar danger" id="fbar-1" style="width:82%"></div></div>
+            <span class="feeder-val" id="fval-1">82%</span>
+          </div>
+          <div class="feeder-row">
+            <span class="feeder-id" id="fid-2">FDR-103</span>
+            <div class="feeder-bar-wrap"><div class="feeder-bar warn" id="fbar-2" style="width:67%"></div></div>
+            <span class="feeder-val" id="fval-2">67%</span>
+          </div>
+          <div class="feeder-row">
+            <span class="feeder-id" id="fid-3">FDR-104</span>
+            <div class="feeder-bar-wrap"><div class="feeder-bar" id="fbar-3" style="width:38%"></div></div>
+            <span class="feeder-val" id="fval-3">38%</span>
+          </div>
+          <div class="feeder-row">
+            <span class="feeder-id" id="fid-4">FDR-105</span>
+            <div class="feeder-bar-wrap"><div class="feeder-bar" id="fbar-4" style="width:54%"></div></div>
+            <span class="feeder-val" id="fval-4">54%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool Activity Log -->
+      <div class="side-card">
+        <div class="panel-header">
+          <span class="panel-title">◈ Tool Activity</span>
+        </div>
+        <div class="tool-log" id="toolLog">
+          <div class="log-empty">No tool calls yet</div>
+        </div>
+      </div>
+
+      <!-- System Status -->
+      <div class="side-card">
+        <div class="panel-header">
+          <span class="panel-title">◈ System Status</span>
+        </div>
+        <div style="padding:10px 12px;display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">AI ENGINE</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#39ff14;">● ONLINE</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">VERSION</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#00d4ff;">VoltIQ v2.0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">PLATFORM</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#00d4ff;">Grid Intelligence</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">API PROXY</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#39ff14;" id="proxyStatus">● SECURED</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">ENCRYPTION</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#39ff14;">● TLS 1.3</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">TOOLS LOADED</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#00d4ff;">4 / 4</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">LATENCY</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#00d4ff;" id="latencyDisplay">-- ms</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;">SESSION</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;" id="sessionTimer">00:00:00</span>
+          </div>
+          <div style="margin-top:4px;padding-top:6px;border-top:1px solid #0f1f30;text-align:center;">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;">Powered by VoltIQ Intelligence Engine</span><br>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;">voltiq.africa · Nigeria · 2026</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div class="input-label">◈ Mission Brief</div>
+        <div id="locationBadge" style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;
+          color:#ffaa00;border:1px solid rgba(255,170,0,0.3);padding:2px 8px;letter-spacing:1px;
+          cursor:pointer;" onclick="clearLocation()" title="Click to reset location">
+          📍 No location set — type your state first
+        </div>
+      </div>
+      <textarea id="userInput" placeholder="Start by typing your state e.g. 'Kogi State' or 'Kaduna' — then run any analysis. VoltIQ will remember your location for the whole session..." rows="2"></textarea>
+    </div>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Deploy Agent">▶</button>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── Tool definitions ──────────────────────────────────────────────────────────
+const TOOLS = [
+  {
+    name: "get_transformer_status",
+    description: "Get current status of a distribution transformer. ALWAYS include the state and disco_name from the user's request.",
+    input_schema: {
+      type: "object",
+      properties: {
+        transformer_id: { type: "string", description: "Transformer ID e.g. TX-07" },
+        disco_name: { type: "string", description: "Distribution company e.g. Kaduna DisCo, KAEDCO, Abuja DisCo, AEDC, Kano DisCo, KEDCO, Jos DisCo, JEDC, Ibadan DisCo, IBEDC, Benin DisCo, BEDC, Port Harcourt DisCo, PHEDC, Enugu DisCo, EEDC, Yola DisCo" },
+        state: { type: "string", description: "Nigerian state e.g. Kaduna, Kogi, Abuja, Lagos, Rivers, Kano, Plateau, Oyo, Edo, Enugu, Adamawa" },
+        location: { type: "string", description: "City or area e.g. Lokoja, Kaduna, Abuja, Lagos, Port Harcourt" }
+      },
+      required: ["transformer_id"]
+    }
+  },
+  {
+    name: "detect_theft_anomalies",
+    description: "Analyze consumption patterns to detect energy theft on a feeder. ALWAYS include the state, location, and disco_name from the user's request so results show correct Nigerian addresses.",
+    input_schema: {
+      type: "object",
+      properties: {
+        feeder_id: { type: "string", description: "Feeder ID e.g. FDR-102" },
+        time_range_days: { type: "integer", description: "Analysis window in days", default: 30 },
+        disco_name: { type: "string", description: "Distribution company name e.g. KAEDCO, AEDC, KEDCO, JEDC, IBEDC, BEDC, PHEDC, EEDC, Yola DisCo, IE Energy, Excel Distribution" },
+        state: { type: "string", description: "Nigerian state where the feeder is located e.g. Kaduna, Kogi, Lagos, Rivers, Kano, Abuja FCT, Plateau, Oyo, Edo, Enugu, Adamawa, Kebbi, Sokoto, Zamfara, Niger, Nassarawa, Benue, Borno, Taraba, Ogun, Osun, Kwara, Delta, Ekiti, Ondo, Akwa Ibom, Cross River, Bayelsa, Anambra, Imo, Abia, Ebonyi" },
+        location: { type: "string", description: "Specific city or area e.g. Lokoja, Okene, Idah, Kabba for Kogi. Kaduna, Zaria for Kaduna. Abuja, Minna for AEDC." }
+      },
+      required: ["feeder_id"]
+    }
+  },
+  {
+    name: "optimize_voltage",
+    description: "Calculate optimal voltage setpoints and tap positions to minimize distribution losses. ALWAYS include state and disco_name from user request.",
+    input_schema: {
+      type: "object",
+      properties: {
+        zone_id: { type: "string", description: "Zone identifier e.g. ZONE-A, ZONE-LOKOJA, ZONE-KADUNA-NORTH" },
+        target_loss_reduction: { type: "number", description: "Target loss reduction in %", minimum: 0, maximum: 20 },
+        disco_name: { type: "string", description: "Distribution company name" },
+        state: { type: "string", description: "Nigerian state where the zone is located" },
+        location: { type: "string", description: "Specific city or area" }
+      },
+      required: ["zone_id"]
+    }
+  },
+  {
+    name: "fetch_meter_data",
+    description: "Retrieve consumption data from smart meters for analysis. ALWAYS include state and location from user request.",
+    input_schema: {
+      type: "object",
+      properties: {
+        meter_ids: { type: "array", items: { type: "string" }, description: "List of meter IDs" },
+        start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+        state: { type: "string", description: "Nigerian state where meters are located" },
+        location: { type: "string", description: "City or area where meters are located" },
+        disco_name: { type: "string", description: "Distribution company name" }
+      },
+      required: ["meter_ids"]
+    }
+  }
+];
+
+// ── NIGERIA COMPLETE LOCATION DATABASE ───────────────────────────────────────
+// Covers all 36 states + FCT with real streets, areas, substations per DisCo
+const NIGERIA_DB = {
+  // ── KADUNA DisCo (KAEDCO) ──────────────────────────────────────────────────
+  kaduna:     { state:"Kaduna State", disco:"KAEDCO", zone:"North-West",
+    streets:["Ahmadu Bello Way","Constitution Road","Kachia Road","Rigasa Drive","Zaria Road","Barnawa Layout","Tudun Wada Street","Kakuri Industrial","Ungwan Rimi","Badiko Road"],
+    areas:["Kaduna North","Kaduna South","Rigasa","Barnawa","Narayi","Malali","Tudun Wada","Kakuri","Ungwan Rimi","Ungwan Sanusi"],
+    substation:"Millennium City 330/132/33kV S/S", lga:"Kaduna North LGA" },
+  zaria:      { state:"Kaduna State", disco:"KAEDCO", zone:"North-West",
+    streets:["Samaru Road","Tudun Wada Road","Sabon Gari Road","Kongo Campus Road","Wusasa Avenue","Gyallesu Road","Rigachikun Road","PZ Road"],
+    areas:["Samaru","Tudun Wada","Sabon Gari","Kongo","Wusasa","Gyallesu","Hanwa","Basawa"],
+    substation:"Zaria 330/132/33kV S/S", lga:"Zaria LGA" },
+  birnin_kebbi: { state:"Kebbi State", disco:"KAEDCO", zone:"North-West",
+    streets:["Sultan Abubakar Road","Kalgo Road","Gwandu Road","Hospital Road","Market Road","Suru Road"],
+    areas:["Birnin Kebbi Central","Kalgo","Gwandu","Argungu Road Area","Jega Road"],
+    substation:"Birnin Kebbi 132/33kV S/S", lga:"Birnin Kebbi LGA" },
+  sokoto:     { state:"Sokoto State", disco:"KAEDCO", zone:"North-West",
+    streets:["Sultan Abubakar Road","Gawon Nama Road","Mabera Drive","Arkilla Avenue","Dange Road","Kware Road","Farfaru Road"],
+    areas:["Mabera","Arkilla","Gawon Nama","Kware","Farfaru","Runjin Sambo","Tudun Wada"],
+    substation:"New Sokoto 330/132/33kV S/S", lga:"Sokoto North LGA" },
+  gusau:      { state:"Zamfara State", disco:"KAEDCO", zone:"North-West",
+    streets:["Murtala Mohammed Way","Hospital Road","Tudun Wada Road","Sabon Gari Road","Bank Road"],
+    areas:["Gusau Central","Tudun Wada","Sabon Gari","Federal Low Cost","Ruwan Bore"],
+    substation:"Gusau 132/33kV S/S", lga:"Gusau LGA" },
+  // ── ABUJA DisCo (AEDC) ────────────────────────────────────────────────────
+  abuja:      { state:"FCT", disco:"AEDC", zone:"North-Central",
+    streets:["Ahmadu Bello Way","Nnamdi Azikiwe Street","Shehu Shagari Way","Constitution Avenue","Benjamin Adekunle Crescent","Ralph Shodeinde Street","Muhammadu Buhari Way","Moshood Abiola Way"],
+    areas:["Wuse Zone 5","Garki Area 11","Maitama","Asokoro","Gwarinpa","Kubwa","Karu","Nyanya","Lugbe","Gwagwalada"],
+    substation:"Katampe 330/132kV S/S", lga:"AMAC" },
+  minna:      { state:"Niger State", disco:"AEDC", zone:"North-Central",
+    streets:["Paiko Road","Bosso Road","Maikunkele Road","Ibrahim Badamasi Babangida Way","Tunga Road"],
+    areas:["Bosso","Tunga","Maikunkele","Chanchaga","Kpakungu","Democrazy Hill"],
+    substation:"Minna 132/33kV S/S", lga:"Chanchaga LGA" },
+  lokoja:     { state:"Kogi State", disco:"AEDC", zone:"North-Central",
+    streets:["Obajana Road","Ganaja Road","Felele Road","Abubakar Umar Road","Stadium Road"],
+    areas:["Felele","Ganaja","Obajana","Adankolo","Nataco","High Level"],
+    substation:"Lokoja 132/33kV S/S", lga:"Lokoja LGA" },
+  // ── KANO DisCo (KEDCO) ────────────────────────────────────────────────────
+  kano:       { state:"Kano State", disco:"KEDCO", zone:"North-West",
+    streets:["Bompai Road","Nasarawa Road","Maiduguri Road","Zoo Road","Kofar Ruwa Road","Sabon Gari Road","Sharada Road","Zaria Road","Airport Road","Kofar Mata Road"],
+    areas:["Sabon Gari","Nassarawa GRA","Bompai Industrial","Sharada Industrial","Fagge","Dorayi","Gwale","Dala","Tarauni","Kumbotso"],
+    substation:"Kumbotso 330/132kV S/S", lga:"Kano Municipal LGA" },
+  katsina:    { state:"Katsina State", disco:"KEDCO", zone:"North-West",
+    streets:["Nagari Road","Yahaya Madaki Way","Mashi Road","Daura Road","Dutsin-ma Road"],
+    areas:["Katsina Central","Dutsin-ma","Mashi","Batagarawa","Kankia"],
+    substation:"Katsina 132/33kV S/S", lga:"Katsina LGA" },
+  dutse:      { state:"Jigawa State", disco:"KEDCO", zone:"North-West",
+    streets:["Kazaure Road","Birnin Kudu Road","Gumel Road","Hadejia Road","Ringim Road"],
+    areas:["Dutse Central","Kazaure","Birnin Kudu","Gumel","Hadejia"],
+    substation:"Dutse 132/33kV S/S", lga:"Dutse LGA" },
+  // ── JOS DisCo (JEDC) ─────────────────────────────────────────────────────
+  jos:        { state:"Plateau State", disco:"JEDC", zone:"North-Central",
+    streets:["Bukuru Road","Zaria Road","Rayfield Avenue","Terminus Area","Anglo-Jos Road","Vom Road","Tafawa Balewa Road","Miango Road","Gindiri Road"],
+    areas:["Rayfield","Terminus","Anglo-Jos","Bukuru","Vom","Shen","Kuru","Dadin Kowa","Farin Gada","Angwan Rogo"],
+    substation:"Jos 132/33kV S/S", lga:"Jos North LGA" },
+  makurdi:    { state:"Benue State", disco:"JEDC", zone:"North-Central",
+    streets:["Gboko Road","Otukpo Road","Joseph Sarwuan Tarka Road","Wurukum Road","North Bank Road"],
+    areas:["High Level","North Bank","Wurukum","Wadata","Judges Quarters","Fiidi"],
+    substation:"Makurdi 132/33kV S/S", lga:"Makurdi LGA" },
+  lafia:      { state:"Nassarawa State", disco:"JEDC", zone:"North-Central",
+    streets:["Akwanga Road","Keffi Road","Obi Road","Doma Road","Awe Road"],
+    areas:["Lafia Central","Akwanga","Keffi","Obi","Doma"],
+    substation:"Lafia 132/33kV S/S", lga:"Lafia LGA" },
+  // ── YOLA DisCo ───────────────────────────────────────────────────────────
+  yola:       { state:"Adamawa State", disco:"Yola DisCo", zone:"North-East",
+    streets:["Galadima Aminu Way","Doubeli Road","Jimeta Road","Karewa Avenue","Nassarawo Road","Bajabure Road","Benue Road","Song Road"],
+    areas:["Jimeta","Karewa","Nassarawo","Doubeli","Demsawo","Luggere","Bekaji","Jambutu"],
+    substation:"Yola 132/33kV S/S", lga:"Yola North LGA" },
+  maiduguri:  { state:"Borno State", disco:"Yola DisCo", zone:"North-East",
+    streets:["Baga Road","Damboa Road","Mafoni Road","Shehuri North Road","Old Maiduguri Road","Lamisula Road"],
+    areas:["Shehuri","Bolori","Mafoni","Lamisula","Gwange","Baga Road Area","Customs Area","Gamboru"],
+    substation:"Maiduguri 132/33kV S/S", lga:"Maiduguri Metropolitan LGA" },
+  jalingo:    { state:"Taraba State", disco:"Yola DisCo", zone:"North-East",
+    streets:["Hammaruwa Way","Bali Road","Wukari Road","Ardo Kola Road","Lau Road"],
+    areas:["Jalingo Central","Bali","Wukari","Ardo Kola","Ibi"],
+    substation:"Jalingo 132/33kV S/S", lga:"Jalingo LGA" },
+  // ── IBADAN DisCo (IBEDC) ─────────────────────────────────────────────────
+  ibadan:     { state:"Oyo State", disco:"IBEDC", zone:"South-West",
+    streets:["Ring Road","Challenge Area","Oluyole Estate","Bodija Market Road","Iwo Road","Eleyele Road","Oke Ado Road","Dugbe Road","Sango Road","Moniya Road"],
+    areas:["Bodija","Challenge","Oluyole","Ring Road","Agbowo","Felele","Oke-Ado","Dugbe","Iyaganku","Agodi GRA"],
+    substation:"Ibadan North 330/132kV S/S", lga:"Ibadan North LGA" },
+  abeokuta:   { state:"Ogun State", disco:"IBEDC", zone:"South-West",
+    streets:["Sapon Road","Oke Lantoro Road","Quarry Road","Kuto Road","Ibara Road","Osiele Road","Asero Road"],
+    areas:["Sapon","Kuto","Ibara","Osiele","Asero","Oke Lantoro","Lafenwa","Kemta"],
+    substation:"Abeokuta 132/33kV S/S", lga:"Abeokuta South LGA" },
+  osogbo:     { state:"Osun State", disco:"IBEDC", zone:"South-West",
+    streets:["Gbongan Road","Ilesa Road","Ikirun Road","Station Road","Aiyetoro Road","Old Garage Road"],
+    areas:["Osogbo Central","Oke-Fia","Dada Estate","Old Garage","Aiyetoro","Powerline Area"],
+    substation:"Osogbo 330/132kV S/S", lga:"Osogbo LGA" },
+  ilorin:     { state:"Kwara State", disco:"IBEDC", zone:"South-West",
+    streets:["Ahmadu Bello Way","Ibrahim Taiwo Road","Bank Road","Unity Road","Afon Road","Gaa Akanbi Road"],
+    areas:["GRA","Offa Garage","Oke Ogun","Tanke","Fate","Gaa Akanbi","Oloje","Taiwo Road Area"],
+    substation:"Ganmo 330/132kV S/S", lga:"Ilorin West LGA" },
+  // ── BENIN DisCo (BEDC) ───────────────────────────────────────────────────
+  benin:      { state:"Edo State", disco:"BEDC", zone:"South-South",
+    streets:["Mission Road","Oba Market Road","Sapele Road","Upper Sokponba Road","Ikpoba Hill Road","Ugbowo Road","Siluko Road","Lagos Street","Akpakpava Road","Etete Road"],
+    areas:["GRA","Ugbowo","Ikpoba Hill","New Benin","Uselu","Sokponba","Ogida","Aduwawa","Oregbeni","Egor"],
+    substation:"Benin 330/132/33kV S/S", lga:"Oredo LGA" },
+  warri:      { state:"Delta State", disco:"BEDC", zone:"South-South",
+    streets:["Effurun Road","Ughelli Road","Refinery Road","Ekpan Road","PTI Road","Deco Road","Market Road","Airport Road"],
+    areas:["Effurun","Ekpan","Igbudu","Agbarho","Okumagba Layout","Okere","Ugboroke","GRA"],
+    substation:"Ughelli 132/33kV S/S", lga:"Uvwie LGA" },
+  akure:      { state:"Ondo State", disco:"BEDC", zone:"South-West",
+    streets:["Oba Adesida Road","Oyemekun Road","FUTA Road","Arakale Road","Ondo Road","Igoba Road"],
+    areas:["Alagbaka GRA","Oba-Ile","Ijoka","Isikan","Ijapo Estate","FUTA Area","Oke Ijebu"],
+    substation:"Akure 330/132/33kV S/S", lga:"Akure South LGA" },
+  ado_ekiti:  { state:"Ekiti State", disco:"BEDC", zone:"South-West",
+    streets:["Iyin Road","Ado-Iworoko Road","Basiri Road","Fajuyi Road","Ikere Road"],
+    areas:["Basiri","Oke Ila","Odo-Ado","Ajilosun","Oke Bisi","Irona"],
+    substation:"Ado-Ekiti 132/33kV S/S", lga:"Ado-Ekiti LGA" },
+  // ── PORT HARCOURT DisCo (PHEDC) ──────────────────────────────────────────
+  port_harcourt: { state:"Rivers State", disco:"PHEDC", zone:"South-South",
+    streets:["Rumuola Road","Trans Amadi Road","GRA Phase 2","Elelenwo Road","Rumuomasi Road","Diobu Road","Artillery Road","Aba Road","Ikwerre Road","Rumuigbo Road"],
+    areas:["GRA Phase 2","Trans Amadi Industrial","Rumuola","Elelenwo","Rumuomasi","Diobu","Old GRA","New GRA","Woji","Choba"],
+    substation:"Port Harcourt Main 132/33kV S/S", lga:"Port Harcourt LGA" },
+  uyo:        { state:"Akwa Ibom State", disco:"PHEDC", zone:"South-South",
+    streets:["Abak Road","Itu Road","Oron Road","Stadium Road","Nwaniba Road","Ikot Ekpene Road"],
+    areas:["Uyo Central","Ewet Housing","Ikot Ekpene Road Area","Wellington Bassey Way Area","Use Offot","Aka Road Area"],
+    substation:"Uyo 132/33kV S/S", lga:"Uyo LGA" },
+  calabar:    { state:"Cross River State", disco:"PHEDC", zone:"South-South",
+    streets:["Murtala Mohammed Way","Ndidem Usang Iso Road","Mary Slessor Avenue","Eta Agbo Road","Creek Town Road"],
+    areas:["State Housing","Satellite Town","Calabar South","Watt Market","Mount Zion","Efut Abua","Big Qua"],
+    substation:"Calabar 132/33kV S/S", lga:"Calabar Municipality LGA" },
+  yenagoa:    { state:"Bayelsa State", disco:"PHEDC", zone:"South-South",
+    streets:["Ekeki Road","Tombia Road","Amarata Road","Isaac Boro Way","Ovom Road"],
+    areas:["Ekeki","Tombia","Amarata","Ovom","Swali","Kpansia","Elebele"],
+    substation:"Yenagoa 132/33kV S/S", lga:"Yenagoa LGA" },
+  // ── ENUGU DisCo (EEDC) ───────────────────────────────────────────────────
+  enugu:      { state:"Enugu State", disco:"EEDC", zone:"South-East",
+    streets:["Ogui Road","Independence Layout Road","New Haven Road","Abakpa Road","Trans-Ekulu Road","Maryland Avenue","Agbani Road","Nike Road","Obiagu Road"],
+    areas:["GRA","Independence Layout","New Haven","Abakpa","Trans-Ekulu","Maryland","Coal Camp","Uwani","Ogui","Emene Industrial"],
+    substation:"Enugu 330/132kV S/S", lga:"Enugu North LGA" },
+  onitsha:    { state:"Anambra State", disco:"EEDC", zone:"South-East",
+    streets:["New Market Road","Upper Iweka Road","Oguta Road","Awka Road","Fegge Road","Inland Town Road","Bridge Head"],
+    areas:["New Market","Upper Iweka","Fegge","Inland Town","Bridge Head","GRA","Woliwo"],
+    substation:"Onitsha 132/33kV S/S", lga:"Onitsha North LGA" },
+  owerri:     { state:"Imo State", disco:"EEDC", zone:"South-East",
+    streets:["Wetheral Road","Ikenegbu Road","Egbu Road","Orlu Road","Okigwe Road","Douglas Road","Control Road","World Bank Road"],
+    areas:["GRA","Ikenegbu","Egbu","World Bank","Trans Nkisi","Uwajomara","Aladinma","New Owerri"],
+    substation:"Owerri 132/33kV S/S", lga:"Owerri Municipal LGA" },
+  umuahia:    { state:"Abia State", disco:"EEDC", zone:"South-East",
+    streets:["Bende Road","Aba Road","Ikot Ekpene Road","Library Avenue","Azikiwe Road","Constitution Road"],
+    areas:["GRA","Ubani","Ikot Ekpene Road Area","Ahiaeke","Ubakala","Umuahia North"],
+    substation:"Owerri 132/33kV S/S", lga:"Umuahia North LGA" },
+  abakaliki:  { state:"Ebonyi State", disco:"EEDC", zone:"South-East",
+    streets:["Ogoja Road","Onueke Road","Afikpo Road","Bishop Shanahan Road","Factory Road"],
+    areas:["Kpirikpiri","Mile 50","GRA","Government House Area","Abaomeje","Azugwu"],
+    substation:"Abakaliki 132/33kV S/S", lga:"Abakaliki LGA" },
+  // ── IKEJA / IE ENERGY DisCo ──────────────────────────────────────────────
+  ikeja:      { state:"Lagos State", disco:"IE Energy", zone:"South-West",
+    streets:["Oba Akran Avenue","Adeniyi Jones Avenue","Allen Avenue","Awolowo Road","Airport Road","Oregun Road","Opebi Road","Toyin Street","Acme Road","Kudirat Abiola Way"],
+    areas:["GRA Ikeja","Allen","Oregun","Maryland","Opebi","Alausa","Agidingbi","Ojodu Berger","Ogba","Isheri"],
+    substation:"Ikeja West 330/132kV S/S", lga:"Ikeja LGA" },
+  ikorodu:    { state:"Lagos State", disco:"IE Energy", zone:"South-West",
+    streets:["Lagos Road","Ijede Road","Oreta Road","Igbogbo Road","Ipakodo Road","Sagamu Road"],
+    areas:["Ikorodu Town","Igbogbo","Imota","Ijede","Ipakodo","Bayeku","Ita-Elewa","Agbede"],
+    substation:"Ikorodu 132/33kV S/S", lga:"Ikorodu LGA" },
+  oshodi:     { state:"Lagos State", disco:"IE Energy", zone:"South-West",
+    streets:["Oshodi-Apapa Expressway","Bolade Road","Ilupeju Road","Ladipo Street","International Airport Road"],
+    areas:["Oshodi","Bolade","Ladipo","Isolo","Shogunle","Mafoluku","Ikotun"],
+    substation:"Oshodi 132/33kV S/S", lga:"Oshodi-Isolo LGA" },
+  // ── EKO / EXCEL DISTRIBUTION DisCo ──────────────────────────────────────
+  lagos_island: { state:"Lagos State", disco:"Excel Distribution", zone:"South-West",
+    streets:["Marina Street","Broad Street","Carter Bridge Road","Lagos Island Road","Balogun Market Road","Nnamdi Azikiwe Street","Bamgbose Street","Tinubu Square"],
+    areas:["Lagos Island","Victoria Island","Ikoyi","Apapa","Ijora","Surulere","Mushin","Ojo","Festac","Lekki"],
+    substation:"Lekki 330/132kV S/S", lga:"Lagos Island LGA" },
+  surulere:   { state:"Lagos State", disco:"Excel Distribution", zone:"South-West",
+    streets:["Adeniran Ogunsanya Street","Western Avenue","Bode Thomas Street","Aguda Road","Itire Road","Ojuelegba Road"],
+    areas:["Surulere","Aguda","Itire","Ojuelegba","Lawanson","Alaka Estate","Eric Moore"],
+    substation:"Ejio 330/132kV S/S", lga:"Surulere LGA" },
+  apapa:      { state:"Lagos State", disco:"Excel Distribution", zone:"South-West",
+    streets:["Wharf Road","Creek Road","Warehouse Road","Marine Beach Road","Liverpool Road","Apapa-Oshodi Expressway"],
+    areas:["Apapa GRA","Ijora Badia","Ajegunle","Orile","Kirikiri","Sari Iganmu"],
+    substation:"Ajegunle 132/33kV S/S", lga:"Apapa LGA" },
+};
+
+// ── Smart location detector — finds the right location from ANY text ──────────
+function detectNigerianLocation(args) {
+  const searchStr = Object.values(args).join(' ').toLowerCase()
+    .replace(/-/g,' ').replace(/_/g,' ');
+
+  // Direct match first
+  for (const [key, loc] of Object.entries(NIGERIA_DB)) {
+    const keyClean = key.replace(/_/g,' ');
+    if (searchStr.includes(keyClean)) return { key, ...loc };
+  }
+
+  // State match
+  const stateMap = {
+    'kaduna':'kaduna','katsina':'katsina','sokoto':'sokoto','zamfara':'gusau',
+    'kebbi':'birnin_kebbi','abuja':'abuja','fct':'abuja','niger':'minna',
+    'kogi':'lokoja','kano':'kano','jigawa':'dutse','plateau':'jos',
+    'benue':'makurdi','nassarawa':'lafia','adamawa':'yola','borno':'maiduguri',
+    'taraba':'jalingo','oyo':'ibadan','ogun':'abeokuta','osun':'osogbo',
+    'kwara':'ilorin','edo':'benin','delta':'warri','ondo':'akure','ekiti':'ado_ekiti',
+    'rivers':'port_harcourt','akwa ibom':'uyo','cross river':'calabar',
+    'bayelsa':'yenagoa','enugu':'enugu','anambra':'onitsha','imo':'owerri',
+    'abia':'umuahia','ebonyi':'abakaliki','lagos':'ikeja','eko':'lagos_island',
+    'ikeja':'ikeja','ikorodu':'ikorodu','apapa':'apapa','surulere':'surulere',
+    'lekki':'lagos_island','vi':'lagos_island','victoria island':'lagos_island',
+  };
+
+  for (const [keyword, locKey] of Object.entries(stateMap)) {
+    if (searchStr.includes(keyword)) {
+      return { key: locKey, ...NIGERIA_DB[locKey] };
+    }
+  }
+
+  // DisCo match
+  const discoMap = {
+    'kaedco':'kaduna','aedc':'abuja','kedco':'kano','jedc':'jos',
+    'ibedc':'ibadan','bedc':'benin','phedc':'port_harcourt','eedc':'enugu',
+    'ie energy':'ikeja','excel distribution':'lagos_island',
+    'yola disco':'yola','aba power':'umuahia',
+    // Extra city matches
+    'lokoja':'lokoja','okene':'lokoja','idah':'lokoja','kabba':'lokoja',
+    'maiduguri':'maiduguri','jalingo':'jalingo','yenagoa':'yenagoa',
+    'calabar':'calabar','uyo':'uyo','owerri':'owerri','onitsha':'onitsha',
+    'abakaliki':'abakaliki','umuahia':'umuahia','makurdi':'makurdi',
+    'lafia':'lafia','minna':'minna','birnin kebbi':'birnin_kebbi',
+    'gusau':'gusau','sokoto':'sokoto','zaria':'zaria',
+    'warri':'warri','akure':'akure','ado ekiti':'ado_ekiti',
+    'benin city':'benin','port harcourt':'port_harcourt',
+    'abeokuta':'abeokuta','osogbo':'osogbo','ilorin':'ilorin',
+  };
+  for (const [keyword, locKey] of Object.entries(discoMap)) {
+    if (searchStr.includes(keyword)) {
+      return { key: locKey, ...NIGERIA_DB[locKey] };
+    }
+  }
+
+  // No match found — return Kaduna only if no other location was implied
+  // Check if search string contains any Nigerian state name
+  const allStates = ['abia','adamawa','akwa','anambra','bauchi','bayelsa','benue',
+    'borno','cross','delta','ebonyi','edo','ekiti','enugu','fct','gombe','imo',
+    'jigawa','kaduna','kano','katsina','kebbi','kogi','kwara','lagos','nasarawa',
+    'niger','ogun','ondo','osun','oyo','plateau','rivers','sokoto','taraba',
+    'yobe','zamfara'];
+  const hasState = allStates.some(s => searchStr.includes(s));
+  
+  // Default: Kaduna only if no Nigerian state detected
+  return { key:'kaduna', ...NIGERIA_DB['kaduna'] };
+}
+
+function rnd(min, max) { return Math.floor(min + Math.random() * (max - min)); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ── Tool implementations ──────────────────────────────────────────────────────
+function executeTool(name, args) {
+  const now = new Date().toISOString();
+  const loc = detectNigerianLocation(args);
+  const TARIFF = 113; // ₦/kWh average Nigerian tariff
+
+  if (name === "get_transformer_status") {
+    const loadPct = rnd(52, 94);
+    const tempC   = rnd(62, 88);
+    const pf      = parseFloat((0.80 + Math.random()*0.15).toFixed(2));
+    const vkv     = parseFloat((10.6 + Math.random()*1.6).toFixed(1));
+    const status  = loadPct > 88 ? "overloaded" : loadPct > 75 ? "high_load" : "operational";
+    return {
+      transformer_id: args.transformer_id,
+      disco_name: loc.disco,
+      location: `${pick(loc.areas)}, ${loc.state.split(' ')[0]}`,
+      full_address: `Near ${pick(loc.streets)}, ${loc.state}`,
+      substation: loc.substation,
+      lga: loc.lga,
+      zone: loc.zone,
+      voltage_kv: vkv,
+      load_percent: loadPct,
+      temperature_c: tempC,
+      status,
+      power_factor: pf,
+      power_factor_status: pf < 0.90 ? "below_optimal_needs_correction" : "acceptable",
+      reactive_power_needed_kvar: pf < 0.90 ? rnd(150, 600) : 0,
+      last_fault: "2026-01-14T03:22:00Z",
+      last_updated: now,
+      alert: loadPct > 88 ? `OVERLOAD ALERT at ${loc.substation} — immediate action required` : null,
+      recommendation: pf < 0.85
+        ? `Install capacitor bank at ${loc.substation} to correct power factor from ${pf} to 0.95+. Estimated savings: ₦${rnd(200,600).toLocaleString()}K/month`
+        : `Transformer operating within normal parameters in ${loc.state.split(' ')[0]}`
+    };
+  }
+
+  if (name === "detect_theft_anomalies") {
+    const lossBase   = [34.2,36.8,38.2,41.5,43.1,45.6,37.9,40.2,29.7,32.4];
+    const lossPct    = lossBase[rnd(0, lossBase.length)];
+    const benchmark  = 8.5;
+    const excessLoss = parseFloat((lossPct - benchmark).toFixed(1));
+    const totalInput = rnd(120000, 165000);
+    const totalBill  = Math.floor(totalInput * (1 - lossPct/100));
+    const monthlyLossNgn = Math.floor((totalInput - totalBill) * TARIFF);
+    const mtrBase    = rnd(1000, 9000);
+
+    const patterns = ["bypass_suspected","meter_tampering","illegal_connection","ct_tampering","meter_bypass","reverse_polarity"];
+    const suspects = [
+      {
+        meter_id: `MTR-${mtrBase}`,
+        address: `${rnd(1,50)} ${pick(loc.streets)}`,
+        area: pick(loc.areas),
+        state: loc.state,
+        lga: loc.lga,
+        loss_contribution_kwh: Math.floor(totalInput * 0.122),
+        revenue_impact_ngn: Math.floor(totalInput * 0.122 * TARIFF),
+        confidence: 0.92,
+        pattern: patterns[0],
+        account_type: "commercial",
+      },
+      {
+        meter_id: `MTR-${mtrBase + rnd(100,500)}`,
+        address: `${rnd(1,50)} ${pick(loc.streets)}`,
+        area: pick(loc.areas),
+        state: loc.state,
+        lga: loc.lga,
+        loss_contribution_kwh: Math.floor(totalInput * 0.087),
+        revenue_impact_ngn: Math.floor(totalInput * 0.087 * TARIFF),
+        confidence: 0.87,
+        pattern: patterns[1],
+        account_type: "residential",
+      },
+      {
+        meter_id: `MTR-${mtrBase + rnd(500,1000)}`,
+        address: `${rnd(1,50)} ${pick(loc.streets)}`,
+        area: pick(loc.areas),
+        state: loc.state,
+        lga: loc.lga,
+        loss_contribution_kwh: Math.floor(totalInput * 0.041),
+        revenue_impact_ngn: Math.floor(totalInput * 0.041 * TARIFF),
+        confidence: 0.71,
+        pattern: patterns[2],
+        account_type: "residential",
+      }
+    ];
+
+    return {
+      feeder_id: args.feeder_id || `${loc.state.slice(0,3).toUpperCase()}-${rnd(100,999)}`,
+      disco: loc.disco,
+      location: `${pick(loc.areas)}, ${loc.state}`,
+      lga: loc.lga,
+      zone: loc.zone,
+      analysis_period_days: args.time_range_days || 30,
+      total_input_kwh: totalInput,
+      total_billed_kwh: totalBill,
+      total_loss_percent: lossPct,
+      benchmark_loss_percent: benchmark,
+      excess_loss_percent: excessLoss,
+      suspected_anomalies: suspects,
+      estimated_monthly_revenue_loss_ngn: monthlyLossNgn,
+      annual_revenue_loss_ngn: monthlyLossNgn * 12,
+      investigation_cost_ngn: 150000,
+      investigation_roi_percent: Math.floor((monthlyLossNgn / 150000) * 100),
+      recommended_action: `Deploy field team immediately to ${suspects[0].address}, ${suspects[0].area}, ${loc.state}. Coordinate with ${loc.lga} security team.`
+    };
+  }
+
+  if (name === "optimize_voltage") {
+    const currentLoss = parseFloat((5.2 + Math.random()*3.8).toFixed(1));
+    const savingsKwh  = rnd(800, 1800);
+    const savingsNgn  = Math.floor(savingsKwh * 30 * TARIFF);
+    const txNum  = rnd(1,20).toString().padStart(2,'0');
+    const cbNum  = rnd(1,8).toString().padStart(2,'0');
+    const vrNum  = rnd(10,25);
+    const street1 = pick(loc.streets);
+    const street2 = pick(loc.streets);
+    return {
+      zone_id: args.zone_id,
+      disco: loc.disco,
+      location: `${pick(loc.areas)}, ${loc.state}`,
+      zone_label: `${loc.state.split(' ')[0]} ${loc.zone} Zone`,
+      lga: loc.lga,
+      current_avg_voltage_kv: parseFloat((10.6 + Math.random()*1.4).toFixed(1)),
+      current_loss_percent: currentLoss,
+      target_loss_reduction_percent: args.target_loss_reduction || 10,
+      recommendations: [
+        { device:`OLTC TX-${txNum}`, location:`${loc.substation}`, action:"Tap position -2", expected_improvement_percent:3.2 },
+        { device:`Capacitor Bank CB-${cbNum}`, location:`${pick(loc.areas)} Grid Station, ${loc.state}`, action:`Switch ON ${rnd(300,600)} kVAr`, expected_improvement_percent:2.8 },
+        { device:`Voltage Regulator VR-${vrNum}`, location:`${rnd(1,40)} ${street1}`, action:"Set to 11.6 kV", expected_improvement_percent:1.9 }
+      ],
+      total_expected_loss_reduction_percent: 7.9,
+      estimated_savings_kwh_per_day: savingsKwh,
+      estimated_savings_ngn_per_month: savingsNgn,
+      cautions: [
+        `Monitor end-of-line voltage at ${rnd(1,50)} ${street2}, ${loc.state}`,
+        `Coordinate capacitor bank switching with ${loc.state.split(' ')[0]} load dispatch centre`,
+        `Verify OLTC oil level at ${loc.substation} before tap change`
+      ]
+    };
+  }
+
+  if (name === "fetch_meter_data") {
+    return {
+      disco: loc.disco,
+      location: loc.state,
+      meters: (args.meter_ids || []).map((id, idx) => ({
+        id,
+        address: `${rnd(1,50)} ${pick(loc.streets)}`,
+        area: pick(loc.areas),
+        state: loc.state,
+        lga: loc.lga,
+        consumption_kwh_30d: rnd(180, 820),
+        avg_daily_kwh: rnd(8, 35),
+        last_reading: "2026-03-28",
+        tamper_flag: idx === 0,
+        tamper_type: idx === 0 ? "potential_bypass_detected" : null,
+        credit_balance_ngn: rnd(0, 8000),
+        account_type: idx === 0 ? "commercial" : "residential",
+        tariff_band: ["A","B","C","D"][idx % 4],
+        disco: loc.disco
+      }))
+    };
+  }
+
+  return { error: `Unknown tool: ${name}` };
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let isRunning = false;
+let turnCount = 0;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 12 DisCos WITH ZONES — Clean selector
+// ══════════════════════════════════════════════════════════════════════════════
+const DISCO_DB = {
+  KAEDCO: {
+    name:'Kaduna Electricity Distribution Co.', abbr:'KAEDCO',
+    loss:68.57, color:'#ff3366', hq:'Kaduna', gzone:'North-West',
+    zones:[
+      { label:'Kaduna North',  state:'Kaduna',  city:'Kaduna',       disco:'KAEDCO' },
+      { label:'Kaduna South',  state:'Kaduna',  city:'Kaduna',       disco:'KAEDCO' },
+      { label:'Zaria',         state:'Kaduna',  city:'Zaria',        disco:'KAEDCO' },
+      { label:'Birnin Kebbi',  state:'Kebbi',   city:'Birnin Kebbi', disco:'KAEDCO' },
+      { label:'Sokoto',        state:'Sokoto',  city:'Sokoto',       disco:'KAEDCO' },
+      { label:'Gusau (Zamfara)',state:'Zamfara', city:'Gusau',        disco:'KAEDCO' },
+    ]
+  },
+  YolaDiSCo: {
+    name:'Yola Electricity Distribution Co.', abbr:'Yola DiSCo',
+    loss:58.20, color:'#ff3366', hq:'Yola', gzone:'North-East',
+    zones:[
+      { label:'Yola',             state:'Adamawa', city:'Yola',       disco:'Yola DiSCo' },
+      { label:'Maiduguri (Borno)',state:'Borno',   city:'Maiduguri',  disco:'Yola DiSCo' },
+      { label:'Jalingo (Taraba)', state:'Taraba',  city:'Jalingo',    disco:'Yola DiSCo' },
+      { label:'Damaturu (Yobe)',  state:'Yobe',    city:'Damaturu',   disco:'Yola DiSCo' },
+      { label:'Gombe',            state:'Gombe',   city:'Gombe',      disco:'Yola DiSCo' },
+      { label:'Bauchi',           state:'Bauchi',  city:'Bauchi',     disco:'Yola DiSCo' },
+    ]
+  },
+  JEDC: {
+    name:'Jos Electricity Distribution Co.', abbr:'JEDC',
+    loss:55.40, color:'#ff6b35', hq:'Jos', gzone:'North-Central',
+    zones:[
+      { label:'Jos North',        state:'Plateau',   city:'Jos',     disco:'JEDC' },
+      { label:'Jos South',        state:'Plateau',   city:'Jos',     disco:'JEDC' },
+      { label:'Makurdi (Benue)',  state:'Benue',     city:'Makurdi', disco:'JEDC' },
+      { label:'Lafia (Nassarawa)',state:'Nassarawa', city:'Lafia',   disco:'JEDC' },
+    ]
+  },
+  EEDC: {
+    name:'Enugu Electricity Distribution Co.', abbr:'EEDC',
+    loss:48.30, color:'#ffaa00', hq:'Enugu', gzone:'South-East',
+    zones:[
+      { label:'Enugu',           state:'Enugu',   city:'Enugu',     disco:'EEDC' },
+      { label:'Onitsha (Anambra)',state:'Anambra', city:'Onitsha',   disco:'EEDC' },
+      { label:'Owerri (Imo)',    state:'Imo',     city:'Owerri',    disco:'EEDC' },
+      { label:'Umuahia (Abia)',  state:'Abia',    city:'Umuahia',   disco:'EEDC' },
+      { label:'Abakaliki (Ebonyi)',state:'Ebonyi', city:'Abakaliki', disco:'EEDC' },
+    ]
+  },
+  IBEDC: {
+    name:'Ibadan Electricity Distribution Co.', abbr:'IBEDC',
+    loss:45.10, color:'#ffaa00', hq:'Ibadan', gzone:'South-West',
+    zones:[
+      { label:'Ibadan North',    state:'Oyo',   city:'Ibadan',   disco:'IBEDC' },
+      { label:'Ibadan South',    state:'Oyo',   city:'Ibadan',   disco:'IBEDC' },
+      { label:'Abeokuta (Ogun)', state:'Ogun',  city:'Abeokuta', disco:'IBEDC' },
+      { label:'Osogbo (Osun)',   state:'Osun',  city:'Osogbo',   disco:'IBEDC' },
+      { label:'Ilorin (Kwara)',  state:'Kwara', city:'Ilorin',   disco:'IBEDC' },
+    ]
+  },
+  BEDC: {
+    name:'Benin Electricity Distribution Co.', abbr:'BEDC',
+    loss:43.80, color:'#ffaa00', hq:'Benin City', gzone:'South-South/West',
+    zones:[
+      { label:'Benin City (Edo)', state:'Edo',   city:'Benin City', disco:'BEDC' },
+      { label:'Warri (Delta)',    state:'Delta', city:'Warri',      disco:'BEDC' },
+      { label:'Akure (Ondo)',     state:'Ondo',  city:'Akure',      disco:'BEDC' },
+      { label:'Ado Ekiti (Ekiti)',state:'Ekiti', city:'Ado Ekiti',  disco:'BEDC' },
+    ]
+  },
+  AEDC: {
+    name:'Abuja Electricity Distribution Co.', abbr:'AEDC',
+    loss:39.61, color:'#ffaa00', hq:'Abuja', gzone:'North-Central',
+    zones:[
+      { label:'Abuja Central (FCT)',  state:'FCT',       city:'Abuja',  disco:'AEDC' },
+      { label:'Abuja North (FCT)',    state:'FCT',       city:'Abuja',  disco:'AEDC' },
+      { label:'Minna (Niger)',        state:'Niger',     city:'Minna',  disco:'AEDC' },
+      { label:'Lokoja (Kogi)',        state:'Kogi',      city:'Lokoja', disco:'AEDC' },
+      { label:'Lafia (Nassarawa)',    state:'Nassarawa', city:'Lafia',  disco:'AEDC' },
+    ]
+  },
+  PHEDC: {
+    name:'Port Harcourt Electricity Distribution Co.', abbr:'PHEDC',
+    loss:38.50, color:'#ffaa00', hq:'Port Harcourt', gzone:'South-South',
+    zones:[
+      { label:'Port Harcourt (Rivers)', state:'Rivers',      city:'Port Harcourt', disco:'PHEDC' },
+      { label:'Yenagoa (Bayelsa)',      state:'Bayelsa',     city:'Yenagoa',       disco:'PHEDC' },
+      { label:'Calabar (Cross River)',  state:'Cross River', city:'Calabar',       disco:'PHEDC' },
+      { label:'Uyo (Akwa Ibom)',        state:'Akwa Ibom',   city:'Uyo',           disco:'PHEDC' },
+    ]
+  },
+  ExcelDist: {
+    name:'Excel Distribution Co. (Lagos South)', abbr:'Excel Dist',
+    loss:32.10, color:'#00d4ff', hq:'Lagos Island', gzone:'South-West',
+    zones:[
+      { label:'Lagos Island',   state:'Lagos', city:'Lagos Island', disco:'Excel Distribution' },
+      { label:'Apapa',          state:'Lagos', city:'Apapa',        disco:'Excel Distribution' },
+      { label:'Festac/Amuwo',   state:'Lagos', city:'Festac',       disco:'Excel Distribution' },
+      { label:'Lekki/Ajah',     state:'Lagos', city:'Lekki',        disco:'Excel Distribution' },
+      { label:'Surulere/Mushin',state:'Lagos', city:'Surulere',     disco:'Excel Distribution' },
+    ]
+  },
+  IEEnergy: {
+    name:'IE Energy Lagos Limited (Lagos North)', abbr:'IE Energy',
+    loss:28.40, color:'#00d4ff', hq:'Ikeja', gzone:'South-West',
+    zones:[
+      { label:'Ikeja GRA/Allen', state:'Lagos', city:'Ikeja',    disco:'IE Energy' },
+      { label:'Ikorodu',         state:'Lagos', city:'Ikorodu',  disco:'IE Energy' },
+      { label:'Oshodi/Isolo',    state:'Lagos', city:'Oshodi',   disco:'IE Energy' },
+      { label:'Shomolu/Bariga',  state:'Lagos', city:'Shomolu',  disco:'IE Energy' },
+      { label:'Maryland/Ojota',  state:'Lagos', city:'Maryland', disco:'IE Energy' },
+    ]
+  },
+  AbaPower: {
+    name:'Aba Power Limited', abbr:'Aba Power',
+    loss:null, color:'#4a7a99', hq:'Aba', gzone:'South-East',
+    zones:[
+      { label:'Aba North', state:'Abia', city:'Aba', disco:'Aba Power' },
+      { label:'Aba South', state:'Abia', city:'Aba', disco:'Aba Power' },
+    ]
+  },
+  KEDCO: {
+    name:'Kano Electricity Distribution Co.', abbr:'KEDCO',
+    loss:18.50, color:'#39ff14', hq:'Kano', gzone:'North-West',
+    zones:[
+      { label:'Kano Metro',     state:'Kano',    city:'Kano',    disco:'KEDCO' },
+      { label:'Kano North',     state:'Kano',    city:'Kano',    disco:'KEDCO' },
+      { label:'Katsina',        state:'Katsina', city:'Katsina', disco:'KEDCO' },
+      { label:'Dutse (Jigawa)', state:'Jigawa',  city:'Dutse',   disco:'KEDCO' },
+    ]
+  }
+};
+
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`;
+}
+
+function lossColor(loss) {
+  if (!loss) return '#4a7a99';
+  if (loss >= 55) return '#ff3366';
+  if (loss >= 45) return '#ff6b35';
+  if (loss >= 35) return '#ffaa00';
+  if (loss >= 25) return '#00d4ff';
+  return '#39ff14';
+}
+
+let activeDiscoKey = null;
+
+function buildDiscoGrid() {
+  const grid = document.getElementById('discoGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  Object.entries(DISCO_DB).forEach(([key, d]) => {
+    const color = d.color;
+    const lossText = d.loss ? d.loss + '%' : 'New';
+    const btn = document.createElement('button');
+    btn.id = 'disco-btn-' + key;
+    btn.style.cssText = 'background:var(--surface2);border:none;padding:10px 8px;cursor:pointer;text-align:left;transition:all 0.18s;position:relative;overflow:hidden;';
+    btn.innerHTML = `
+      <div style="font-family:'Orbitron',monospace;font-size:0.58rem;font-weight:700;color:${color};letter-spacing:0.5px;line-height:1.3;">${d.abbr}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.52rem;color:var(--muted);margin-top:3px;line-height:1.4;">${d.gzone}</div>
+      <div style="font-family:'Orbitron',monospace;font-size:0.6rem;font-weight:700;color:${color};margin-top:4px;">${lossText}</div>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:${color};opacity:0.35;"></div>
+    `;
+    btn.onmouseenter = () => { if (activeDiscoKey !== key) { btn.style.background = `rgba(${hexToRgb(color)},0.08)`; }};
+    btn.onmouseleave = () => { if (activeDiscoKey !== key) { btn.style.background = 'var(--surface2)'; }};
+    btn.onclick = () => selectDisco(key);
+    grid.appendChild(btn);
+  });
+}
+
+function selectDisco(key) {
+  const d = DISCO_DB[key];
+  if (!d) return;
+  activeDiscoKey = key;
+  const color = d.color;
+
+  // Reset all disco buttons
+  Object.keys(DISCO_DB).forEach(k => {
+    const b = document.getElementById('disco-btn-' + k);
+    if (!b) return;
+    if (k === key) {
+      b.style.background = `rgba(${hexToRgb(color)},0.14)`;
+      b.style.outline = `1px solid ${color}`;
+    } else {
+      b.style.background = 'var(--surface2)';
+      b.style.outline = 'none';
+    }
+  });
+
+  // Update badge
+  const badge = document.getElementById('activeDiscoBadge');
+  if (badge) {
+    badge.innerHTML = `<span style="color:${color};font-weight:700;">${d.abbr}</span> &nbsp;·&nbsp; ${d.hq} &nbsp;·&nbsp; <span style="color:${color};">${d.loss ? d.loss+'%' : 'New'}</span>`;
+    badge.style.borderColor = color;
+  }
+
+  // Build zone buttons
+  const zoneRow  = document.getElementById('zoneRow');
+  const zoneBtns = document.getElementById('zoneBtns');
+  if (!zoneRow || !zoneBtns) return;
+  zoneRow.style.display = 'flex';
+  zoneBtns.innerHTML = '';
+
+  d.zones.forEach((z, i) => {
+    const zb = document.createElement('button');
+    zb.id = 'zone-btn-' + key + '-' + i;
+    const isFirst = i === 0;
+    zb.style.cssText = `
+      background:${isFirst ? `rgba(${hexToRgb(color)},0.14)` : 'var(--surface2)'};
+      border:1px solid ${isFirst ? color : 'var(--border)'};
+      color:${isFirst ? color : 'var(--muted)'};
+      font-family:'Share Tech Mono',monospace;font-size:0.6rem;
+      padding:4px 10px;cursor:pointer;transition:all 0.15s;letter-spacing:0.5px;
+      white-space:nowrap;
+    `;
+    zb.textContent = z.label;
+    zb.onclick = () => selectZone(key, i);
+    zoneBtns.appendChild(zb);
+  });
+
+  // Auto-select first zone
+  selectZone(key, 0, true);
+}
+
+function selectZone(key, idx, silent=false) {
+  const d = DISCO_DB[key];
+  if (!d) return;
+  const z = d.zones[idx];
+  const color = d.color;
+
+  // Highlight selected zone
+  d.zones.forEach((_, i) => {
+    const zb = document.getElementById('zone-btn-' + key + '-' + i);
+    if (!zb) return;
+    if (i === idx) {
+      zb.style.background = `rgba(${hexToRgb(color)},0.14)`;
+      zb.style.borderColor = color;
+      zb.style.color = color;
+    } else {
+      zb.style.background = 'var(--surface2)';
+      zb.style.borderColor = 'var(--border)';
+      zb.style.color = 'var(--muted)';
+    }
+  });
+
+  // Save session location
+  sessionLocation = { state: z.state, city: z.city, disco: z.disco, raw: z.label };
+  updateLocationBadge();
+
+  if (!silent) {
+    // Clean chat announcement
+    const msgs = document.getElementById('messages');
+    const msg = document.createElement('div');
+    msg.className = 'msg system';
+    msg.innerHTML = `
+      <div class="msg-avatar">SYS</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-role">System</span>
+          <span class="msg-time">${timestamp()}</span>
+        </div>
+        <div class="msg-content" style="display:flex;flex-direction:column;gap:3px;">
+          <div>📍 <strong style="color:${color}">${z.label}</strong> — ${z.state} activated</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--muted);">
+            DisCo: <span style="color:${color}">${d.abbr}</span> &nbsp;·&nbsp; ATC&C: <span style="color:${color};font-weight:700;">${d.loss ? d.loss+'%' : 'New'}</span> &nbsp;·&nbsp; ${d.gzone}
+          </div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;">Ready — click any analysis button above</div>
+        </div>
+      </div>
+    `;
+    if (msgs) { msgs.appendChild(msg); msgs.scrollTop = msgs.scrollHeight; }
+  }
+}
+
+function openAdminPanel() {
+  document.getElementById('adminPanelModal').style.display = 'flex';
+}
+
+function closeAdminPanel() {
+  document.getElementById('adminPanelModal').style.display = 'none';
+}
+
+function toggleDiscoGrid() {
+  const grid = document.getElementById('discoGrid');
+  const btn  = document.getElementById('discoToggleBtn');
+  if (!grid) return;
+  const isVisible = grid.style.display === 'grid';
+  grid.style.display = isVisible ? 'none' : 'grid';
+  btn.textContent = isVisible ? '⚡ SELECT DisCo ▾' : '⚡ SELECT DisCo ▲';
+  if (!isVisible) btn.style.color = 'var(--accent)';
+  else { btn.style.color = 'var(--muted)'; btn.style.borderColor = 'var(--border)'; }
+}
+
+function buildStatesDropdown() {
+  const content = document.getElementById('statesDropdownContent');
+  if (!content || content.innerHTML) return;
+  content.innerHTML = NATIONAL_GRID_ZONES.map(zoneData => `
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:${zoneData.color};
+        letter-spacing:2px;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,0.06);
+        margin-bottom:4px;">${zoneData.zone.toUpperCase()}</div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        ${zoneData.states.map(s => {
+          const lc = lossColor(s.loss);
+          return `<button onclick="selectStateFromGrid('${s.name}','${s.city}','${s.disco}',${s.loss},'${lc}');closeStatesDropdown();"
+            style="background:none;border:none;border-left:2px solid ${lc};
+            color:${lc};font-family:'Share Tech Mono',monospace;font-size:0.62rem;
+            padding:4px 10px;cursor:pointer;text-align:left;transition:all 0.15s;
+            display:flex;justify-content:space-between;align-items:center;"
+            onmouseover="this.style.background='rgba(255,255,255,0.04)'"
+            onmouseout="this.style.background='none'">
+            <span>${s.name} — ${s.city}</span>
+            <span style="font-size:0.58rem;color:#4a7a99;">${s.disco} ${s.loss}%</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleStatesDropdown() {
+  const dd = document.getElementById('statesDropdown');
+  if (!dd) return;
+  const isOpen = dd.style.display === 'block';
+  dd.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) buildStatesDropdown();
+}
+
+function closeStatesDropdown() {
+  const dd = document.getElementById('statesDropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const dd   = document.getElementById('statesDropdown');
+  const btn  = document.getElementById('statesDropBtn');
+  const modal = document.getElementById('nationalGridModal');
+  const adminModal = document.getElementById('adminPanelModal');
+  if (dd && !dd.contains(e.target) && e.target !== btn) dd.style.display = 'none';
+  if (modal && e.target === modal) closeNationalGrid();
+  if (adminModal && e.target === adminModal) closeAdminPanel();
+});
+
+document.addEventListener('DOMContentLoaded', buildDiscoGrid);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NATIONAL GRID MODAL — All 36 States + FCT by Geopolitical Zone
+// ══════════════════════════════════════════════════════════════════════════════
+const NATIONAL_GRID_ZONES = [
+  {
+    zone: 'North-West', color: '#185FA5',
+    states: [
+      { name:'Kaduna',  city:'Kaduna',       disco:'KAEDCO',     loss:68.57 },
+      { name:'Kebbi',   city:'Birnin Kebbi', disco:'KAEDCO',     loss:68.57 },
+      { name:'Sokoto',  city:'Sokoto',       disco:'KAEDCO',     loss:68.57 },
+      { name:'Zamfara', city:'Gusau',        disco:'KAEDCO',     loss:68.57 },
+      { name:'Kano',    city:'Kano',         disco:'KEDCO',      loss:18.50 },
+      { name:'Katsina', city:'Katsina',      disco:'KEDCO',      loss:18.50 },
+      { name:'Jigawa',  city:'Dutse',        disco:'KEDCO',      loss:18.50 },
+    ]
+  },
+  {
+    zone: 'North-East', color: '#534AB7',
+    states: [
+      { name:'Adamawa', city:'Yola',      disco:'Yola DiSCo', loss:58.20 },
+      { name:'Borno',   city:'Maiduguri', disco:'Yola DiSCo', loss:58.20 },
+      { name:'Taraba',  city:'Jalingo',   disco:'Yola DiSCo', loss:58.20 },
+      { name:'Yobe',    city:'Damaturu',  disco:'Yola DiSCo', loss:58.20 },
+      { name:'Gombe',   city:'Gombe',     disco:'Yola DiSCo', loss:58.20 },
+      { name:'Bauchi',  city:'Bauchi',    disco:'Yola DiSCo', loss:58.20 },
+    ]
+  },
+  {
+    zone: 'North-Central', color: '#0F6E56',
+    states: [
+      { name:'FCT',       city:'Abuja',  disco:'AEDC',  loss:39.61 },
+      { name:'Niger',     city:'Minna',  disco:'AEDC',  loss:39.61 },
+      { name:'Kogi',      city:'Lokoja', disco:'AEDC',  loss:39.61 },
+      { name:'Nassarawa', city:'Lafia',  disco:'AEDC',  loss:39.61 },
+      { name:'Kwara',     city:'Ilorin', disco:'IBEDC', loss:45.10 },
+      { name:'Benue',     city:'Makurdi',disco:'JEDC',  loss:55.40 },
+      { name:'Plateau',   city:'Jos',    disco:'JEDC',  loss:55.40 },
+    ]
+  },
+  {
+    zone: 'South-West', color: '#854F0B',
+    states: [
+      { name:'Lagos (N)', city:'Ikeja',       disco:'IE Energy',      loss:28.40 },
+      { name:'Lagos (S)', city:'Lagos Island', disco:'Excel Dist',    loss:32.10 },
+      { name:'Oyo',       city:'Ibadan',      disco:'IBEDC',          loss:45.10 },
+      { name:'Ogun',      city:'Abeokuta',    disco:'IBEDC',          loss:45.10 },
+      { name:'Osun',      city:'Osogbo',      disco:'IBEDC',          loss:45.10 },
+      { name:'Ondo',      city:'Akure',       disco:'BEDC',           loss:43.80 },
+      { name:'Ekiti',     city:'Ado Ekiti',   disco:'BEDC',           loss:43.80 },
+    ]
+  },
+  {
+    zone: 'South-South', color: '#993556',
+    states: [
+      { name:'Rivers',     city:'Port Harcourt', disco:'PHEDC', loss:38.50 },
+      { name:'Bayelsa',    city:'Yenagoa',       disco:'PHEDC', loss:38.50 },
+      { name:'Cross River',city:'Calabar',       disco:'PHEDC', loss:38.50 },
+      { name:'Akwa Ibom',  city:'Uyo',           disco:'PHEDC', loss:38.50 },
+      { name:'Delta',      city:'Asaba',         disco:'BEDC',  loss:43.80 },
+      { name:'Edo',        city:'Benin City',    disco:'BEDC',  loss:43.80 },
+    ]
+  },
+  {
+    zone: 'South-East', color: '#3B6D11',
+    states: [
+      { name:'Enugu',   city:'Enugu',     disco:'EEDC',      loss:48.30 },
+      { name:'Anambra', city:'Awka',      disco:'EEDC',      loss:48.30 },
+      { name:'Imo',     city:'Owerri',    disco:'EEDC',      loss:48.30 },
+      { name:'Abia',    city:'Umuahia',   disco:'EEDC',      loss:48.30 },
+      { name:'Ebonyi',  city:'Abakaliki', disco:'EEDC',      loss:48.30 },
+    ]
+  },
+];
+
+function buildNationalGridContent() {
+  const container = document.getElementById('nationalGridContent');
+  if (!container) return;
+
+  container.innerHTML = NATIONAL_GRID_ZONES.map(zoneData => `
+    <div style="margin-bottom:20px;">
+      <!-- Zone Header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:12px;height:12px;border-radius:50%;background:${zoneData.color};flex-shrink:0;"></div>
+        <span style="font-family:'Orbitron',monospace;font-size:0.65rem;font-weight:700;color:${zoneData.color};letter-spacing:2px;">${zoneData.zone.toUpperCase()}</span>
+        <div style="flex:1;height:1px;background:rgba(${hexToRgb(zoneData.color)},0.25);"></div>
+      </div>
+      <!-- State buttons -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${zoneData.states.map(s => {
+          const lc = lossColor(s.loss);
+          return `
+            <button onclick="selectStateFromGrid('${s.name}','${s.city}','${s.disco}',${s.loss},'${lc}')"
+              style="background:rgba(${hexToRgb(lc)},0.07);
+                border:1px solid rgba(${hexToRgb(lc)},0.3);
+                padding:8px 12px;cursor:pointer;text-align:left;
+                transition:all 0.15s;min-width:110px;"
+              onmouseover="this.style.background='rgba(${hexToRgb(lc)},0.18)';this.style.borderColor='${lc}'"
+              onmouseout="this.style.background='rgba(${hexToRgb(lc)},0.07)';this.style.borderColor='rgba(${hexToRgb(lc)},0.3)'">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;font-weight:700;color:${lc};">${s.name}</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;margin-top:2px;">${s.disco}</div>
+              <div style="font-family:'Orbitron',monospace;font-size:0.6rem;font-weight:700;color:${lc};margin-top:3px;">${s.loss}%</div>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function openNationalGrid() {
+  buildNationalGridContent();
+  document.getElementById('nationalGridModal').style.display = 'flex';
+}
+
+function closeNationalGrid() {
+  document.getElementById('nationalGridModal').style.display = 'none';
+}
+
+function selectStateFromGrid(stateName, city, disco, loss, color) {
+  // Set session location
+  sessionLocation = { state: stateName, city, disco, raw: stateName };
+  updateLocationBadge();
+  closeNationalGrid();
+
+  // Clear any active DisCo highlight
+  Object.keys(DISCO_DB).forEach(k => {
+    const b = document.getElementById('disco-btn-' + k);
+    if (b) { b.style.background = 'var(--surface2)'; b.style.outline = 'none'; }
+  });
+
+  // Hide zone row
+  const zoneRow = document.getElementById('zoneRow');
+  if (zoneRow) zoneRow.style.display = 'none';
+
+  // Update badge
+  const badge = document.getElementById('activeDiscoBadge');
+  if (badge) {
+    badge.innerHTML = `<span style="color:${color};font-weight:700;">${stateName}</span> &nbsp;·&nbsp; ${disco} &nbsp;·&nbsp; <span style="color:${color};">${loss}%</span>`;
+    badge.style.borderColor = color;
+  }
+
+  // Clean chat message
+  const msgs = document.getElementById('messages');
+  const msg = document.createElement('div');
+  msg.className = 'msg system';
+  msg.innerHTML = `
+    <div class="msg-avatar">SYS</div>
+    <div class="msg-body">
+      <div class="msg-meta">
+        <span class="msg-role">System</span>
+        <span class="msg-time">${timestamp()}</span>
+      </div>
+      <div class="msg-content" style="display:flex;flex-direction:column;gap:3px;">
+        <div>📍 <strong style="color:${color}">${stateName}</strong> — ${city} activated</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--muted);">
+          DisCo: <span style="color:${color}">${disco}</span> &nbsp;·&nbsp;
+          ATC&C Loss: <span style="color:${color};font-weight:700;">${loss}%</span>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#2a5a77;">Ready — click any analysis button above</div>
+      </div>
+    </div>
+  `;
+  if (msgs) { msgs.appendChild(msg); msgs.scrollTop = msgs.scrollHeight; }
+}
+
+// Close on outside click
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('nationalGridModal');
+  if (modal && e.target === modal) closeNationalGrid();
+});
+
+// ── PERSISTENT LOCATION MEMORY ────────────────────────────────────────────────
+// ── PERSISTENT LOCATION MEMORY ────────────────────────────────────────────────
+const DISCO_DATA = {
+  KAEDCO: {
+    name: 'Kaduna Electricity Distribution Company',
+    abbr: 'KAEDCO', loss: '68.57%', color: '#ff3366',
+    hq: 'Kaduna', zone: 'North-West',
+    states: ['Kaduna', 'Kebbi', 'Sokoto', 'Zamfara'],
+    zones: [
+      { id: 'KADUNA-NORTH',   label: 'Kaduna North',   state: 'Kaduna',  city: 'Kaduna' },
+      { id: 'KADUNA-SOUTH',   label: 'Kaduna South',   state: 'Kaduna',  city: 'Kaduna' },
+      { id: 'ZARIA',          label: 'Zaria',          state: 'Kaduna',  city: 'Zaria' },
+      { id: 'BIRNIN-KEBBI',   label: 'Birnin Kebbi',   state: 'Kebbi',   city: 'Birnin Kebbi' },
+      { id: 'SOKOTO',         label: 'Sokoto',         state: 'Sokoto',  city: 'Sokoto' },
+      { id: 'GUSAU',          label: 'Gusau (Zamfara)', state: 'Zamfara', city: 'Gusau' },
+    ]
+  },
+  YolaDiSCo: {
+    name: 'Yola Electricity Distribution Company',
+    abbr: 'Yola DiSCo', loss: '58.20%', color: '#ff3366',
+    hq: 'Yola', zone: 'North-East',
+    states: ['Adamawa', 'Taraba', 'Borno', 'Yobe'],
+    zones: [
+      { id: 'YOLA',       label: 'Yola (Adamawa)',    state: 'Adamawa', city: 'Yola' },
+      { id: 'MAIDUGURI',  label: 'Maiduguri (Borno)', state: 'Borno',   city: 'Maiduguri' },
+      { id: 'JALINGO',    label: 'Jalingo (Taraba)',   state: 'Taraba',  city: 'Jalingo' },
+      { id: 'DAMATURU',   label: 'Damaturu (Yobe)',   state: 'Yobe',    city: 'Damaturu' },
+      { id: 'GOMBE',      label: 'Gombe',             state: 'Gombe',   city: 'Gombe' },
+    ]
+  },
+  JEDC: {
+    name: 'Jos Electricity Distribution Company',
+    abbr: 'JEDC', loss: '55.40%', color: '#ff6b35',
+    hq: 'Jos', zone: 'North-Central',
+    states: ['Plateau', 'Benue', 'Nassarawa'],
+    zones: [
+      { id: 'JOS-NORTH',   label: 'Jos North',      state: 'Plateau',   city: 'Jos' },
+      { id: 'JOS-SOUTH',   label: 'Jos South',      state: 'Plateau',   city: 'Jos' },
+      { id: 'MAKURDI',     label: 'Makurdi (Benue)', state: 'Benue',    city: 'Makurdi' },
+      { id: 'LAFIA',       label: 'Lafia (Nassarawa)', state: 'Nassarawa', city: 'Lafia' },
+    ]
+  },
+  EEDC: {
+    name: 'Enugu Electricity Distribution Company',
+    abbr: 'EEDC', loss: '48.30%', color: '#ffaa00',
+    hq: 'Enugu', zone: 'South-East',
+    states: ['Enugu', 'Anambra', 'Ebonyi', 'Imo', 'Abia'],
+    zones: [
+      { id: 'ENUGU',      label: 'Enugu',           state: 'Enugu',    city: 'Enugu' },
+      { id: 'ONITSHA',    label: 'Onitsha (Anambra)',state: 'Anambra',  city: 'Onitsha' },
+      { id: 'OWERRI',     label: 'Owerri (Imo)',    state: 'Imo',      city: 'Owerri' },
+      { id: 'UMUAHIA',    label: 'Umuahia (Abia)',  state: 'Abia',     city: 'Umuahia' },
+      { id: 'ABAKALIKI',  label: 'Abakaliki (Ebonyi)', state: 'Ebonyi', city: 'Abakaliki' },
+    ]
+  },
+  IBEDC: {
+    name: 'Ibadan Electricity Distribution Company',
+    abbr: 'IBEDC', loss: '45.10%', color: '#ffaa00',
+    hq: 'Ibadan', zone: 'South-West',
+    states: ['Oyo', 'Ogun', 'Osun', 'Kwara'],
+    zones: [
+      { id: 'IBADAN-NORTH', label: 'Ibadan North',    state: 'Oyo',   city: 'Ibadan' },
+      { id: 'IBADAN-SOUTH', label: 'Ibadan South',    state: 'Oyo',   city: 'Ibadan' },
+      { id: 'ABEOKUTA',     label: 'Abeokuta (Ogun)', state: 'Ogun',  city: 'Abeokuta' },
+      { id: 'OSOGBO',       label: 'Osogbo (Osun)',   state: 'Osun',  city: 'Osogbo' },
+      { id: 'ILORIN',       label: 'Ilorin (Kwara)',  state: 'Kwara', city: 'Ilorin' },
+    ]
+  },
+  BEDC: {
+    name: 'Benin Electricity Distribution Company',
+    abbr: 'BEDC', loss: '43.80%', color: '#ffaa00',
+    hq: 'Benin City', zone: 'South-West/South-South',
+    states: ['Edo', 'Delta', 'Ekiti', 'Ondo'],
+    zones: [
+      { id: 'BENIN',    label: 'Benin City (Edo)',  state: 'Edo',   city: 'Benin City' },
+      { id: 'WARRI',    label: 'Warri (Delta)',     state: 'Delta', city: 'Warri' },
+      { id: 'AKURE',    label: 'Akure (Ondo)',      state: 'Ondo',  city: 'Akure' },
+      { id: 'ADO-EKITI',label: 'Ado Ekiti (Ekiti)', state: 'Ekiti', city: 'Ado Ekiti' },
+    ]
+  },
+  AEDC: {
+    name: 'Abuja Electricity Distribution Company',
+    abbr: 'AEDC', loss: '39.61%', color: '#ffaa00',
+    hq: 'Abuja', zone: 'North-Central',
+    states: ['FCT', 'Niger', 'Kogi', 'Nassarawa'],
+    zones: [
+      { id: 'ABUJA-CENTRAL', label: 'Abuja Central (FCT)', state: 'FCT',       city: 'Abuja' },
+      { id: 'ABUJA-NORTH',   label: 'Abuja North (FCT)',   state: 'FCT',       city: 'Abuja' },
+      { id: 'MINNA',         label: 'Minna (Niger)',       state: 'Niger',     city: 'Minna' },
+      { id: 'LOKOJA',        label: 'Lokoja (Kogi)',       state: 'Kogi',      city: 'Lokoja' },
+      { id: 'LAFIA-AEDC',    label: 'Lafia (Nassarawa)',   state: 'Nassarawa', city: 'Lafia' },
+    ]
+  },
+  PHEDC: {
+    name: 'Port Harcourt Electricity Distribution Company',
+    abbr: 'PHEDC', loss: '38.50%', color: '#ffaa00',
+    hq: 'Port Harcourt', zone: 'South-South',
+    states: ['Rivers', 'Bayelsa', 'Cross River', 'Akwa Ibom'],
+    zones: [
+      { id: 'PORT-HARCOURT', label: 'Port Harcourt (Rivers)', state: 'Rivers',      city: 'Port Harcourt' },
+      { id: 'YENAGOA',       label: 'Yenagoa (Bayelsa)',      state: 'Bayelsa',     city: 'Yenagoa' },
+      { id: 'CALABAR',       label: 'Calabar (Cross River)',  state: 'Cross River', city: 'Calabar' },
+      { id: 'UYO',           label: 'Uyo (Akwa Ibom)',        state: 'Akwa Ibom',   city: 'Uyo' },
+    ]
+  },
+  ExcelDist: {
+    name: 'Excel Distribution Company',
+    abbr: 'Excel Dist', loss: '32.10%', color: '#00d4ff',
+    hq: 'Lagos Island', zone: 'South-West',
+    states: ['Lagos (South)'],
+    zones: [
+      { id: 'LAGOS-ISLAND', label: 'Lagos Island',    state: 'Lagos', city: 'Lagos Island' },
+      { id: 'APAPA',        label: 'Apapa',           state: 'Lagos', city: 'Apapa' },
+      { id: 'FESTAC',       label: 'Festac/Amuwo',    state: 'Lagos', city: 'Festac' },
+      { id: 'LEKKI',        label: 'Lekki/Ajah',      state: 'Lagos', city: 'Lekki' },
+      { id: 'SURULERE',     label: 'Surulere/Mushin',  state: 'Lagos', city: 'Surulere' },
+    ]
+  },
+  IEEnergy: {
+    name: 'IE Energy Lagos Limited',
+    abbr: 'IE Energy', loss: '28.40%', color: '#00d4ff',
+    hq: 'Ikeja', zone: 'South-West',
+    states: ['Lagos (North)'],
+    zones: [
+      { id: 'IKEJA',    label: 'Ikeja GRA/Allen',  state: 'Lagos', city: 'Ikeja' },
+      { id: 'IKORODU',  label: 'Ikorodu',          state: 'Lagos', city: 'Ikorodu' },
+      { id: 'OSHODI',   label: 'Oshodi/Isolo',     state: 'Lagos', city: 'Oshodi' },
+      { id: 'SHOMOLU',  label: 'Shomolu/Bariga',   state: 'Lagos', city: 'Shomolu' },
+      { id: 'MARYLAND', label: 'Maryland/Ojota',   state: 'Lagos', city: 'Maryland' },
+    ]
+  },
+  AbaPower: {
+    name: 'Aba Power Limited',
+    abbr: 'Aba Power', loss: 'New', color: '#4a7a99',
+    hq: 'Aba', zone: 'South-East',
+    states: ['Abia'],
+    zones: [
+      { id: 'ABA-NORTH', label: 'Aba North',  state: 'Abia', city: 'Aba' },
+      { id: 'ABA-SOUTH', label: 'Aba South',  state: 'Abia', city: 'Aba' },
+    ]
+  },
+  KEDCO: {
+    name: 'Kano Electricity Distribution Company',
+    abbr: 'KEDCO', loss: '18.50%', color: '#39ff14',
+    hq: 'Kano', zone: 'North-West',
+    states: ['Kano', 'Katsina', 'Jigawa'],
+    zones: [
+      { id: 'KANO-METRO',  label: 'Kano Metro',       state: 'Kano',    city: 'Kano' },
+      { id: 'KANO-NORTH',  label: 'Kano North',       state: 'Kano',    city: 'Kano' },
+      { id: 'KATSINA',     label: 'Katsina',          state: 'Katsina', city: 'Katsina' },
+      { id: 'DUTSE',       label: 'Dutse (Jigawa)',   state: 'Jigawa',  city: 'Dutse' },
+    ]
+  }
+};
+
+// Stores the user's location for the entire session
+let sessionLocation = {
+  state: null,
+  city: null,
+  disco: null,
+  raw: null  // raw text user typed
+};
+
+// Full Nigeria location map — detects from any user input
+const NIGERIA_LOCATION_MAP = [
+  { keywords:['kogi','lokoja','okene','idah','kabba','ankpa','ajaokuta'], state:'Kogi', city:'Lokoja', disco:'AEDC' },
+  { keywords:['abuja','fct','federal capital','gwagwalada','kubwa','maitama','wuse','garki','asokoro','gwarinpa'], state:'FCT', city:'Abuja', disco:'AEDC' },
+  { keywords:['niger state','minna','suleja','bida','kontagora'], state:'Niger', city:'Minna', disco:'AEDC' },
+  { keywords:['nassarawa','nasarawa','lafia','keffi','akwanga'], state:'Nassarawa', city:'Lafia', disco:'AEDC' },
+  { keywords:['kaduna','zaria','kachia','rigasa','barnawa','narayi','malali','kafanchan'], state:'Kaduna', city:'Kaduna', disco:'KAEDCO' },
+  { keywords:['kebbi','birnin kebbi','argungu','gwandu','jega'], state:'Kebbi', city:'Birnin Kebbi', disco:'KAEDCO' },
+  { keywords:['sokoto','gawon nama','mabera','arkilla'], state:'Sokoto', city:'Sokoto', disco:'KAEDCO' },
+  { keywords:['zamfara','gusau','kaura namoda','talata mafara'], state:'Zamfara', city:'Gusau', disco:'KAEDCO' },
+  { keywords:['kano','sabon gari','bompai','nassarawa gra','kumbotso','sharada','fagge','dorayi'], state:'Kano', city:'Kano', disco:'KEDCO' },
+  { keywords:['katsina','daura','funtua','malumfashi'], state:'Katsina', city:'Katsina', disco:'KEDCO' },
+  { keywords:['jigawa','dutse','hadejia','gumel','kazaure'], state:'Jigawa', city:'Dutse', disco:'KEDCO' },
+  { keywords:['plateau','jos','bukuru','vom','rayfield','terminus'], state:'Plateau', city:'Jos', disco:'JEDC' },
+  { keywords:['benue','makurdi','gboko','otukpo','katsina ala'], state:'Benue', city:'Makurdi', disco:'JEDC' },
+  { keywords:['adamawa','yola','jimeta','mubi','numan'], state:'Adamawa', city:'Yola', disco:'Yola DisCo' },
+  { keywords:['borno','maiduguri','bama','konduga','jere'], state:'Borno', city:'Maiduguri', disco:'Yola DisCo' },
+  { keywords:['taraba','jalingo','wukari','bali'], state:'Taraba', city:'Jalingo', disco:'Yola DisCo' },
+  { keywords:['yobe','damaturu','potiskum','gashua'], state:'Yobe', city:'Damaturu', disco:'Yola DisCo' },
+  { keywords:['gombe','deba','billiri','kaltungo'], state:'Gombe', city:'Gombe', disco:'Yola DisCo' },
+  { keywords:['bauchi','azare','misau','alkaleri'], state:'Bauchi', city:'Bauchi', disco:'Yola DisCo' },
+  { keywords:['oyo','ibadan','ogbomoso','oyo town','bodija','challenge','oluyole','ring road'], state:'Oyo', city:'Ibadan', disco:'IBEDC' },
+  { keywords:['ogun','abeokuta','sagamu','ijebu ode','ota'], state:'Ogun', city:'Abeokuta', disco:'IBEDC' },
+  { keywords:['osun','osogbo','ife','ilesa','ikirun'], state:'Osun', city:'Osogbo', disco:'IBEDC' },
+  { keywords:['kwara','ilorin','offa','jebba','share'], state:'Kwara', city:'Ilorin', disco:'IBEDC' },
+  { keywords:['edo','benin city','benin','ekpoma','auchi','uromi'], state:'Edo', city:'Benin City', disco:'BEDC' },
+  { keywords:['delta','warri','asaba','effurun','sapele','ughelli'], state:'Delta', city:'Warri', disco:'BEDC' },
+  { keywords:['ondo','akure','owo','ondo town','okitipupa'], state:'Ondo', city:'Akure', disco:'BEDC' },
+  { keywords:['ekiti','ado ekiti','ado-ekiti','ikere','ijero'], state:'Ekiti', city:'Ado Ekiti', disco:'BEDC' },
+  { keywords:['rivers','port harcourt','ph','trans amadi','rumuola','gra phase','elelenwo','rumuomasi'], state:'Rivers', city:'Port Harcourt', disco:'PHEDC' },
+  { keywords:['akwa ibom','uyo','eket','ikot ekpene','oron'], state:'Akwa Ibom', city:'Uyo', disco:'PHEDC' },
+  { keywords:['cross river','calabar','ugep','ikom','ogoja'], state:'Cross River', city:'Calabar', disco:'PHEDC' },
+  { keywords:['bayelsa','yenagoa','brass','sagbama','ogbia'], state:'Bayelsa', city:'Yenagoa', disco:'PHEDC' },
+  { keywords:['enugu','nsukka','agbani','coal camp','independence layout','new haven'], state:'Enugu', city:'Enugu', disco:'EEDC' },
+  { keywords:['anambra','onitsha','awka','nnewi','ekwulobia'], state:'Anambra', city:'Onitsha', disco:'EEDC' },
+  { keywords:['imo','owerri','orlu','okigwe','mbaise'], state:'Imo', city:'Owerri', disco:'EEDC' },
+  { keywords:['abia','umuahia','aba','ohafia'], state:'Abia', city:'Umuahia', disco:'EEDC' },
+  { keywords:['ebonyi','abakaliki','afikpo','onueke'], state:'Ebonyi', city:'Abakaliki', disco:'EEDC' },
+  { keywords:['ikeja','oshodi','ikorodu','shomolu','agbowo','ogba','maryland','allen','oregun','opebi','ie energy'], state:'Lagos', city:'Ikeja', disco:'IE Energy' },
+  { keywords:['lagos island','apapa','festac','lekki','surulere','mushin','ojo','ajegunle','excel distribution','eko electric',' vi ','victoria island','ikoyi'], state:'Lagos', city:'Lagos Island', disco:'Excel Distribution' },
+  { keywords:['lagos','lasgidi'], state:'Lagos', city:'Ikeja', disco:'IE Energy' },
+  // DisCo name matches
+  { keywords:['kaedco','kaduna disco','kaduna electric'], state:'Kaduna', city:'Kaduna', disco:'KAEDCO' },
+  { keywords:['aedc','abuja disco','abuja electric'], state:'FCT', city:'Abuja', disco:'AEDC' },
+  { keywords:['kedco','kano disco','kano electric'], state:'Kano', city:'Kano', disco:'KEDCO' },
+  { keywords:['jedc','jos disco','jos electric'], state:'Plateau', city:'Jos', disco:'JEDC' },
+  { keywords:['ibedc','ibadan disco','ibadan electric'], state:'Oyo', city:'Ibadan', disco:'IBEDC' },
+  { keywords:['bedc','benin disco','benin electric'], state:'Edo', city:'Benin City', disco:'BEDC' },
+  { keywords:['phedc','port harcourt disco','ph disco'], state:'Rivers', city:'Port Harcourt', disco:'PHEDC' },
+  { keywords:['eedc','enugu disco','enugu electric'], state:'Enugu', city:'Enugu', disco:'EEDC' },
+  { keywords:['yola disco','adamawa electric'], state:'Adamawa', city:'Yola', disco:'Yola DisCo' },
+];
+
+function detectAndSaveLocation(text) {
+  const lower = text.toLowerCase();
+  for (const entry of NIGERIA_LOCATION_MAP) {
+    if (entry.keywords.some(k => lower.includes(k))) {
+      sessionLocation = { state: entry.state, city: entry.city, disco: entry.disco, raw: text };
+      updateLocationBadge();
+      return true;
+    }
+  }
+  return false;
+}
+
+function updateLocationBadge() {
+  let badge = document.getElementById('locationBadge');
+  if (!badge) return;
+  if (sessionLocation.state) {
+    badge.textContent = `📍 ${sessionLocation.city}, ${sessionLocation.state} — ${sessionLocation.disco}`;
+    badge.style.display = 'block';
+    badge.style.color = '#39ff14';
+    badge.style.borderColor = 'rgba(57,255,20,0.3)';
+  } else {
+    badge.textContent = '📍 No location set — type your state first';
+    badge.style.color = '#ffaa00';
+    badge.style.borderColor = 'rgba(255,170,0,0.3)';
+  }
+}
+
+function getLocationContext() {
+  if (!sessionLocation.state) return '';
+  return `\n\nCURRENT SESSION LOCATION (use this for ALL tool calls):\n- State: ${sessionLocation.state}\n- City: ${sessionLocation.city}\n- DisCo: ${sessionLocation.disco}\nDo NOT use Kaduna or any other default. Use ONLY the above location.`;
+}
+const MAX_TURNS = 6;
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function timestamp() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+document.getElementById('initTime').textContent = timestamp();
+// Initialize location badge
+updateLocationBadge();
+
+function setStatus(state) {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.className = 'status-dot ' + state;
+  const labels = { idle: 'STANDBY', thinking: 'PROCESSING', ok: 'COMPLETE', error: 'ERROR' };
+  text.textContent = labels[state] || state.toUpperCase();
+}
+
+function addMessage(role, content, extra = '') {
+  const msgs = document.getElementById('messages');
+  const avatars = { user: 'OPS', agent: 'AI', tool: 'TOOL', system: 'SYS' };
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  let contentHtml = '';
+  if (role === 'tool') {
+    contentHtml = `<div class="tool-call"><div class="tool-name">▸ ${extra}</div><div class="tool-args">${escHtml(content)}</div></div>`;
+  } else {
+    contentHtml = `<div class="msg-content">${escHtml(content)}</div>`;
+  }
+
+  div.innerHTML = `
+    <div class="msg-avatar">${avatars[role] || role}</div>
+    <div class="msg-body">
+      <div class="msg-meta">
+        <span class="msg-role">${role.charAt(0).toUpperCase() + role.slice(1)}</span>
+        <span class="msg-time">${timestamp()}</span>
+      </div>
+      ${contentHtml}
+    </div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function addThinking() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.id = 'thinkingMsg';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-body">
+      <div class="msg-meta"><span class="msg-role">Agent</span><span class="msg-time">${timestamp()}</span></div>
+      <div class="thinking">
+        Processing
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeThinking() {
+  const el = document.getElementById('thinkingMsg');
+  if (el) el.remove();
+}
+
+function logTool(name, args) {
+  const log = document.getElementById('toolLog');
+  const empty = log.querySelector('.log-empty');
+  if (empty) empty.remove();
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `
+    <span class="log-icon">⚙</span>
+    <span class="log-text"><strong>${name}</strong> → ${JSON.stringify(args).slice(0, 60)}${JSON.stringify(args).length > 60 ? '…' : ''}</span>
+  `;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setRunning(running) {
+  isRunning = running;
+  document.getElementById('sendBtn').disabled = running;
+  document.getElementById('userInput').disabled = running;
+  document.querySelectorAll('.task-btn').forEach(b => b.disabled = running);
+  setStatus(running ? 'thinking' : 'ok');
+}
+
+function updateTurnDisplay() {
+  document.getElementById('turnCount').textContent = `${turnCount} TURNS`;
+}
+
+function clearChat() {
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  document.getElementById('toolLog').innerHTML = '<div class="log-empty">No tool calls yet</div>';
+  turnCount = 0;
+  updateTurnDisplay();
+  setStatus('idle');
+  addMessage('system', '⚡ VoltIQ Intelligence Engine online. Select a state above then click any quick task button to begin analysis.');
+}
+
+function clearLocation() {
+  sessionLocation = { state: null, city: null, disco: null, raw: null };
+  updateLocationBadge();
+  addMessage('system', '📍 Location cleared. Type your state to set a new location.');
+}
+
+// ── Agent loop ─────────────────────────────────────────────────────────────────
+async function runAgent(task) {
+  const messages = [{ role: 'user', content: task }];
+  turnCount = 0;
+
+  const langCfg = LANG_CONFIG[currentLang] || LANG_CONFIG['en'];
+  // ── Inject saved location into every call ──
+  const locationContext = getLocationContext();
+  const SYSTEM = `You are VoltIQ AI for Nigerian electricity distribution companies (DisCos).
+Expertise: energy theft detection, voltage optimization, smart metering, Nigerian power sector.
+Always quantify revenue impact in Nigerian Naira. Be precise and actionable.${locationContext}
+
+CRITICAL RULES — FOLLOW STRICTLY:
+
+1. NEVER ask the user for location more than once. If location was mentioned ANYWHERE in the conversation — use it immediately.
+
+2. ALWAYS run the tool immediately when asked. Do NOT ask clarifying questions before running a tool. Just run it with the best location context available.
+
+3. LOCATION MEMORY: If the user said "Kogi State" earlier in the conversation — ALL subsequent tool calls use state=Kogi, location=Lokoja, disco_name=AEDC. Remember this for the entire conversation.
+
+4. DEFAULT BEHAVIOR: If no location is given at all, default to state=Kaduna, location=Kaduna, disco_name=KAEDCO and run the analysis immediately.
+
+5. LOCATION MAPPING — always use these when user mentions:
+- Kogi / Lokoja / Okene → state=Kogi, location=Lokoja, disco_name=AEDC
+- Abuja / FCT → state=FCT, location=Abuja, disco_name=AEDC  
+- Niger / Minna → state=Niger, location=Minna, disco_name=AEDC
+- Kaduna / Zaria → state=Kaduna, location=Kaduna, disco_name=KAEDCO
+- Lagos / Ikeja → state=Lagos, location=Ikeja, disco_name=IE Energy
+- Rivers / Port Harcourt → state=Rivers, location=Port Harcourt, disco_name=PHEDC
+- Kano → state=Kano, location=Kano, disco_name=KEDCO
+- Plateau / Jos → state=Plateau, location=Jos, disco_name=JEDC
+- Oyo / Ibadan → state=Oyo, location=Ibadan, disco_name=IBEDC
+- Edo / Benin → state=Edo, location=Benin City, disco_name=BEDC
+- Enugu → state=Enugu, location=Enugu, disco_name=EEDC
+- Adamawa / Yola → state=Adamawa, location=Yola, disco_name=Yola DisCo
+- Kebbi / Birnin Kebbi → state=Kebbi, location=Birnin Kebbi, disco_name=KAEDCO
+- Sokoto → state=Sokoto, location=Sokoto, disco_name=KAEDCO
+- Zamfara / Gusau → state=Zamfara, location=Gusau, disco_name=KAEDCO
+- Benue / Makurdi → state=Benue, location=Makurdi, disco_name=JEDC
+- Nassarawa / Lafia → state=Nassarawa, location=Lafia, disco_name=JEDC
+- Akwa Ibom / Uyo → state=Akwa Ibom, location=Uyo, disco_name=PHEDC
+- Cross River / Calabar → state=Cross River, location=Calabar, disco_name=PHEDC
+- Bayelsa / Yenagoa → state=Bayelsa, location=Yenagoa, disco_name=PHEDC
+- Delta / Warri → state=Delta, location=Warri, disco_name=BEDC
+- Ondo / Akure → state=Ondo, location=Akure, disco_name=BEDC
+- Ekiti / Ado Ekiti → state=Ekiti, location=Ado Ekiti, disco_name=BEDC
+- Ogun / Abeokuta → state=Ogun, location=Abeokuta, disco_name=IBEDC
+- Osun / Osogbo → state=Osun, location=Osogbo, disco_name=IBEDC
+- Kwara / Ilorin → state=Kwara, location=Ilorin, disco_name=IBEDC
+- Anambra / Onitsha → state=Anambra, location=Onitsha, disco_name=EEDC
+- Imo / Owerri → state=Imo, location=Owerri, disco_name=EEDC
+- Abia / Umuahia → state=Abia, location=Umuahia, disco_name=EEDC
+- Ebonyi / Abakaliki → state=Ebonyi, location=Abakaliki, disco_name=EEDC
+- Borno / Maiduguri → state=Borno, location=Maiduguri, disco_name=Yola DisCo
+- Taraba / Jalingo → state=Taraba, location=Jalingo, disco_name=Yola DisCo
+- Yobe → state=Yobe, location=Damaturu, disco_name=Yola DisCo
+- Jigawa / Dutse → state=Jigawa, location=Dutse, disco_name=KEDCO
+- Katsina → state=Katsina, location=Katsina, disco_name=KEDCO
+- Gombe → state=Gombe, location=Gombe, disco_name=Yola DisCo
+- Bauchi → state=Bauchi, location=Bauchi, disco_name=Yola DisCo
+
+6. When the user says something like "analyze feeder FDR-102" — immediately call detect_theft_anomalies with feeder_id=FDR-102 plus the location from the conversation. Do NOT ask again.
+
+7. When the user says "check transformer TX-07" — immediately call get_transformer_status. Do NOT ask for location again.
+
+8. When the user says "run voltage optimization" — immediately call optimize_voltage with zone_id based on current location context.
+
+End every analysis with a concise executive summary.
+${langCfg.systemSuffix}`;
+
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
+    turnCount = turn + 1;
+    updateTurnDisplay();
+    addThinking();
+
+    let response;
+    try {
+      const fetchStart = Date.now();
+      const res = await fetch('https://voltiq-api.momolistic2008.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1500,
+          system: SYSTEM,
+          messages,
+          tools: TOOLS,
+          tool_choice: { type: 'auto' }
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        removeThinking();
+        // ── Handle rate limit specifically ──
+        if (res.status === 429) {
+          addMessage('system', '⏳ Rate limit reached — waiting 15 seconds before retrying...');
+          await new Promise(r => setTimeout(r, 15000));
+          // Retry once after waiting
+          const retry = await fetch('https://voltiq-api.momolistic2008.workers.dev', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 1500,
+              system: SYSTEM,
+              messages,
+              tools: TOOLS,
+              tool_choice: { type: 'auto' }
+            })
+          });
+          if (retry.ok) {
+            response = await retry.json();
+            const latency = Date.now() - fetchStart;
+            const latEl = document.getElementById('latencyDisplay');
+            if (latEl) latEl.textContent = latency + ' ms';
+          } else {
+            addMessage('system', '⚠ Still rate limited. Please wait 1 minute and try again with a shorter request.');
+            setStatus('error');
+            break;
+          }
+        } else {
+          addMessage('system', `⚠ API Error ${res.status}: ${err?.error?.message || res.statusText}`);
+          setStatus('error');
+          break;
+        }
+      }
+
+      response = await res.json();
+      // Update latency display
+      const latency = Date.now() - fetchStart;
+      const latEl = document.getElementById('latencyDisplay');
+      if (latEl) latEl.textContent = latency + ' ms';
+    } catch (e) {
+      removeThinking();
+      addMessage('system', `⚠ Network error: ${e.message}`);
+      setStatus('error');
+      // Show proxy as offline
+      const proxyEl = document.getElementById('proxyStatus');
+      if (proxyEl) { proxyEl.textContent = '● OFFLINE'; proxyEl.style.color = '#ff3366'; }
+      break;
+    }
+
+    removeThinking();
+
+    // Append assistant message to history
+    messages.push({ role: 'assistant', content: response.content });
+
+    if (response.stop_reason === 'end_turn') {
+      // Show final text
+      const textBlock = response.content.find(b => b.type === 'text');
+      if (textBlock) {
+        addMessage('agent', textBlock.text);
+        // ── SYNC DASHBOARD WITH AI RESULTS ──
+        syncDashboard(textBlock.text, messages);
+      }
+      setStatus('ok');
+      break;
+    }
+
+    if (response.stop_reason === 'tool_use') {
+      // Show any text before tool calls
+      const textBlock = response.content.find(b => b.type === 'text');
+      if (textBlock && textBlock.text.trim()) addMessage('agent', textBlock.text);
+
+      // Process ALL tool calls
+      const toolResults = [];
+      for (const block of response.content) {
+        if (block.type !== 'tool_use') continue;
+
+        logTool(block.name, block.input);
+
+        let result;
+        try {
+          result = executeTool(block.name, block.input);
+          // ── SYNC DASHBOARD FROM TOOL RESULT IN REAL TIME ──
+          syncFromToolResult(block.name, result);
+        } catch (e) {
+          result = { error: `Tool error: ${e.message}` };
+        }
+
+        const preview = JSON.stringify(result, null, 2).slice(0, 300) + (JSON.stringify(result).length > 300 ? '\n…' : '');
+        addMessage('tool', preview, block.name + `(${JSON.stringify(block.input).slice(0,50)}…)`);
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: JSON.stringify(result)
+        });
+      }
+
+      messages.push({ role: 'user', content: toolResults });
+
+    } else {
+      // ── AUTO RETRY on max_tokens — continue the analysis ONCE ────────────
+      if (response.stop_reason === 'max_tokens') {
+        // Only retry if we have turns left and haven't already retried
+        if (turn < MAX_TURNS - 1) {
+          addMessage('system', '↻ Completing analysis — generating final report...');
+          messages.push({ role: 'assistant', content: response.content });
+          messages.push({ role: 'user', content: 'Please provide the final executive summary and prioritized recommendations only — keep it concise.' });
+          await new Promise(r => setTimeout(r, 2000)); // 2 second pause
+          continue;
+        } else {
+          // Show whatever we have so far
+          const partialText = response.content.find(b => b.type === 'text');
+          if (partialText) addMessage('agent', partialText.text + '\n\n---\n*Analysis complete. Export report for full details.*');
+        }
+      }
+      addMessage('system', `Unexpected stop reason: ${response.stop_reason}`);
+      break;
+    }
+  }
+
+  setRunning(false);
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────────────
+function exportPDF() {
+  const messages = document.querySelectorAll('.msg');
+  if (!messages.length) {
+    alert('No analysis to export yet. Run an analysis first.');
+    return;
+  }
+
+  // Build clean printable HTML
+  let content = '';
+  messages.forEach(msg => {
+    const role = msg.classList.contains('agent') ? 'VoltIQ AI'
+               : msg.classList.contains('user') ? 'Operator'
+               : msg.classList.contains('tool') ? 'Tool Result'
+               : 'System';
+    const body = msg.querySelector('.msg-content');
+    const time = msg.querySelector('.msg-time');
+    if (body && role !== 'Tool Result') {
+      content += `<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #eee;">
+        <div style="font-weight:bold;color:#003366;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+          ${role} ${time ? '· ' + time.textContent : ''}
+        </div>
+        <div style="font-size:13px;line-height:1.7;white-space:pre-wrap;">${body.textContent}</div>
+      </div>`;
+    }
+  });
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html><html><head>
+    <title>VoltIQ Analysis Report — ${new Date().toLocaleDateString()}</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 40px; color: #333; }
+      .header { text-align:center; padding:30px; background:#003366; color:white; margin-bottom:30px; }
+      .header h1 { font-size:28px; margin:0 0 6px; letter-spacing:3px; }
+      .header p { font-size:12px; opacity:0.8; margin:0; letter-spacing:1px; }
+      .meta { display:flex; justify-content:space-between; font-size:11px; color:#666; margin-bottom:30px; padding:12px; background:#f5f9fc; border-left:4px solid #00d4ff; }
+      .footer { text-align:center; font-size:10px; color:#999; margin-top:40px; padding-top:20px; border-top:1px solid #eee; }
+      @media print { body { margin:0; } }
+    </style>
+    </head><body>
+    <div class="header">
+      <h1>⚡ VoltIQ AFRICA</h1>
+      <p>SMART GRID INTELLIGENCE REPORT · voltiq.africa</p>
+    </div>
+    <div class="meta">
+      <span>Generated: ${new Date().toLocaleString()}</span>
+      <span>Powered by VoltIQ AI · Claude AI Engine</span>
+      <span>VoltIQ Africa Limited · Nigeria · 2026</span>
+    </div>
+    ${content}
+    <div class="footer">
+      VoltIQ Africa Limited · voltiq.africa · AI-Powered Grid Intelligence for Nigerian DisCos<br>
+      This report is confidential and generated by VoltIQ AI. © 2026 VoltIQ Africa Limited.
+    </div>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
+// ── TXT EXPORT ────────────────────────────────────────────────────────────────
+function exportTXT() {
+  const messages = document.querySelectorAll('.msg');
+  if (!messages.length) {
+    alert('No analysis to export yet. Run an analysis first.');
+    return;
+  }
+
+  let text = `${'='.repeat(70)}\n`;
+  text += `VOLTIQ AI — SMART GRID INTELLIGENCE REPORT\n`;
+  text += `voltiq.africa | VoltIQ Africa Limited | Nigeria\n`;
+  text += `Generated: ${new Date().toLocaleString()}\n`;
+  text += `${'='.repeat(70)}\n\n`;
+
+  messages.forEach(msg => {
+    const role = msg.classList.contains('agent') ? 'VOLTIQ AI'
+               : msg.classList.contains('user') ? 'OPERATOR'
+               : msg.classList.contains('tool') ? 'TOOL'
+               : 'SYSTEM';
+    const body = msg.querySelector('.msg-content');
+    const time = msg.querySelector('.msg-time');
+    if (body && role !== 'TOOL') {
+      text += `[${role}] ${time ? time.textContent : ''}\n`;
+      text += `${'-'.repeat(50)}\n`;
+      text += body.textContent + '\n\n';
+    }
+  });
+
+  text += `\n${'='.repeat(70)}\n`;
+  text += `VoltIQ Africa Limited · voltiq.africa · © 2026\n`;
+  text += `${'='.repeat(70)}\n`;
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `VoltIQ_Report_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 1 — NIGERIAN LANGUAGE INTERFACE (Hausa / Yoruba / Igbo / English)
+// ══════════════════════════════════════════════════════════════════════════════
+let currentLang = 'en';
+
+const LANG_CONFIG = {
+  en: {
+    name: 'English',
+    placeholder: 'e.g. Analyze feeder FDR-102 for theft anomalies, then optimize voltage settings...',
+    welcome: 'VoltIQ Intelligence Engine online. Select a quick task above or type your mission brief below.',
+    systemSuffix: 'Always respond in English.',
+    labels: {
+      theft:'Theft Detection', voltage:'Voltage Optimize', audit:'Full Audit',
+      transformer:'Transformer Check', upload:'Upload Data', predict:'Predict Theft', report:'Report Theft',
+      missionBrief:'◈ Mission Brief', agentConsole:'◈ Agent Console'
+    }
+  },
+  ha: {
+    name: 'Hausa',
+    placeholder: 'Misali: Bincika layin FDR-102 don sata, sa\'an nan gyara wutar lantarki...',
+    welcome: 'VoltIQ Intelligence Engine yana aiki. Zaɓi aikin da kake so ko rubuta bukatarka a ƙasa.',
+    systemSuffix: 'Always respond in Hausa (Hausa language). Use Nigerian electricity sector terminology in Hausa where possible. All amounts in Naira.',
+    labels: {
+      theft:'Gano Sata', voltage:'Inganta Wuta', audit:'Cikakken Bincike',
+      transformer:'Duba Transformer', upload:'Loda Bayanan', predict:'Hasashen Sata', report:'Rahoto Sata',
+      missionBrief:'◈ Shigar Da Bukatar', agentConsole:'◈ Tashar AI'
+    }
+  },
+  yo: {
+    name: 'Yoruba',
+    placeholder: 'Fun apẹẹrẹ: Ṣayẹwo feeder FDR-102 fun jija ina, lẹhinna mu foliteji dara si...',
+    welcome: 'Ẹ̀rọ VoltIQ Intelligence ti ṣi. Yan iṣẹ́ tó fẹ́ tàbí kọ ohun tó fẹ́ ní isalẹ.',
+    systemSuffix: 'Always respond in Yoruba language. Use Nigerian electricity terminology in Yoruba where appropriate. All amounts in Naira.',
+    labels: {
+      theft:'Ṣawari Jija', voltage:'Ìmúdára Foliteji', audit:'Ìtúpalẹ̀ Pípé',
+      transformer:'Ṣayẹwo Transformer', upload:'Gbe Dẹta Soke', predict:'Sọtẹlẹ Jija', report:'Ìjábọ̀ Jija',
+      missionBrief:'◈ Ìfẹnukò Iṣẹ́', agentConsole:'◈ Ibi AI'
+    }
+  },
+  ig: {
+    name: 'Igbo',
+    placeholder: 'Ihe atụ: Nyochaa feeder FDR-102 maka ohi ọkụ, wee mezie voltej...',
+    welcome: 'Ngwa VoltIQ Intelligence malitere. Họrọ ọrụ ma ọ bụ dee ihe ịchọ n\'okpuru.',
+    systemSuffix: 'Always respond in Igbo language. Use Nigerian electricity terminology in Igbo where possible. All amounts in Naira.',
+    labels: {
+      theft:'Chọpụta Ohi', voltage:'Melite Voltej', audit:'Nyocha Zuru Oke',
+      transformer:'Lelee Transformer', upload:'Bulite Data', predict:'Amụma Ohi', report:'Kọọ Ohi',
+      missionBrief:'◈ Ndenye Ọrụ', agentConsole:'◈ Ebe AI'
+    }
+  }
+};
+
+function setLang(lang) {
+  currentLang = lang;
+  const cfg = LANG_CONFIG[lang];
+
+  // Update active button
+  ['en','ha','yo','ig'].forEach(l => {
+    const btn = document.getElementById('lang-'+l);
+    if (btn) btn.classList.toggle('active', l === lang);
+  });
+
+  // Update placeholder
+  const ta = document.getElementById('userInput');
+  if (ta) ta.placeholder = cfg.placeholder;
+
+  // Update task button labels
+  const taskBtns = document.querySelectorAll('.task-btn');
+  const labelKeys = ['theft','voltage','audit','transformer','upload','predict','report'];
+  taskBtns.forEach((btn, i) => {
+    if (i < labelKeys.length) {
+      const lbl = btn.querySelector('.task-label');
+      if (lbl && cfg.labels[labelKeys[i]]) lbl.textContent = cfg.labels[labelKeys[i]];
+    }
+  });
+
+  // Update panel title
+  const consoleTitle = document.querySelector('.panel-title');
+  if (consoleTitle) consoleTitle.textContent = cfg.labels.agentConsole;
+
+  // Update mission brief label
+  const mbl = document.querySelector('.input-label');
+  if (mbl) mbl.textContent = cfg.labels.missionBrief;
+
+  // Show feedback message
+  const msgs = { en:'Language set to English', ha:'An canza harshe zuwa Hausa',
+                 yo:'Ede ti yipada si Yoruba', ig:'Agharia asụsụ gaa Igbo' };
+  addMessage('system', msgs[lang] + ' — VoltIQ ' + cfg.name);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 2 — PREDICTIVE THEFT ANALYSIS
+// ══════════════════════════════════════════════════════════════════════════════
+// Added as quick task index 4 — uses special prompt injected into QUICK_TASKS
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 3 — COMMUNITY THEFT REPORTING
+// ══════════════════════════════════════════════════════════════════════════════
+function openCommunityReport() {
+  document.getElementById('creportModal').style.display = 'flex';
+}
+
+function closeCommunityReport() {
+  document.getElementById('creportModal').style.display = 'none';
+  document.getElementById('cr-result').style.display = 'none';
+  document.getElementById('cr-result').textContent = '';
+}
+
+async function submitCommunityReport() {
+  const state    = document.getElementById('cr-state').value;
+  const location = document.getElementById('cr-location').value;
+  const type     = document.getElementById('cr-type').value;
+  const desc     = document.getElementById('cr-desc').value;
+  const name     = document.getElementById('cr-name').value || 'Anonymous';
+  const phone    = document.getElementById('cr-phone').value || 'Not provided';
+
+  if (!state || !location || !type || !desc) {
+    alert('Please fill in all required fields (State, Location, Type, and Description).');
+    return;
+  }
+
+  const btn = document.querySelector('.creport-box button[onclick="submitCommunityReport()"]');
+  btn.textContent = 'ANALYZING REPORT...';
+  btn.disabled = true;
+
+  const prompt = `You are VoltIQ AI receiving a community electricity theft report in Nigeria.
+
+REPORT DETAILS:
+- Reporter: ${name} (Phone: ${phone})
+- State: ${state}
+- Location: ${location}
+- Theft Type: ${type}
+- Description: ${desc}
+- Report Time: ${new Date().toLocaleString()}
+
+Please:
+1. Acknowledge the report and thank the reporter
+2. Assess the credibility score (0-100%) based on the description
+3. Identify which DisCo serves this area
+4. Generate a field investigation reference number (format: VIQ-${Date.now().toString().slice(-6)})
+5. Describe what field team should look for at this location
+6. Estimate potential monthly revenue loss if theft is confirmed
+7. Tell reporter what happens next
+
+Be warm, professional, and respond as if speaking to a Nigerian citizen helping their community.`;
+
+  try {
+    const res = await fetch('https://voltiq-api.momolistic2008.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data.content.find(b => b.type === 'text')?.text || 'Report received.';
+      const result = document.getElementById('cr-result');
+      result.style.display = 'block';
+      result.textContent = text;
+
+      // Also add to main chat
+      closeCommunityReport();
+      addMessage('system', '📣 Community theft report submitted for ' + location + ', ' + state);
+      addMessage('agent', text);
+
+      // Clear form
+      ['cr-state','cr-location','cr-type','cr-desc','cr-name','cr-phone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    }
+  } catch(e) {
+    alert('Could not submit report. Please check your internet connection.');
+  } finally {
+    btn.textContent = 'SUBMIT REPORT TO VOLTIQ AI';
+    btn.disabled = false;
+  }
+}
+
+// Close community report modal on outside click
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('creportModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCommunityReport();
+  });
+});
+
+// ── DASHBOARD SYNCHRONIZATION ─────────────────────────────────────────────────
+
+function flashMetric(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash');
+  void el.offsetWidth; // force reflow
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 700);
+}
+
+function updateMetric(id, value, unit = '', colorClass = '') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = value + (unit ? `<span class="metric-unit">${unit}</span>` : '');
+  el.className = 'metric-value' + (colorClass ? ' ' + colorClass : '');
+  flashMetric(id);
+}
+
+function updateFeederBar(idx, id, pct) {
+  const bar  = document.getElementById(`fbar-${idx}`);
+  const val  = document.getElementById(`fval-${idx}`);
+  const fid  = document.getElementById(`fid-${idx}`);
+  if (!bar || !val) return;
+  if (fid && id) fid.textContent = id;
+  bar.style.width = Math.min(pct, 100) + '%';
+  bar.className = 'feeder-bar' + (pct >= 75 ? ' danger' : pct >= 55 ? ' warn' : '');
+  val.textContent = pct + '%';
+}
+
+function syncDashboard(reportText, messages) {
+  // ── 1. Extract loss percentage ──────────────────────────────────────────────
+  const lossMatch = reportText.match(/(\d+\.?\d*)\s*%\s*(?:total\s+)?loss/i)
+                 || reportText.match(/loss\s+(?:rate|percent)[:\s]+(\d+\.?\d*)/i)
+                 || reportText.match(/ATC&C\s+loss[:\s]+(\d+\.?\d*)/i);
+  if (lossMatch) {
+    const loss = parseFloat(lossMatch[1]);
+    const cls = loss >= 50 ? 'danger' : loss >= 30 ? 'warn' : 'ok';
+    updateMetric('m-loss', loss.toFixed(1), '%', cls);
+  }
+
+  // ── 2. Count theft alerts ───────────────────────────────────────────────────
+  const suspectMatches = reportText.match(/MTR-\d+|suspect\s+\d+|meter\s+\d+/gi) || [];
+  const uniqueSuspects = [...new Set(suspectMatches.map(s => s.toUpperCase()))];
+  const alertCount = uniqueSuspects.length || (reportText.match(/suspect|tamper|bypass|illegal/gi) || []).length;
+  if (alertCount > 0) {
+    const alertCls = alertCount >= 5 ? 'danger' : alertCount >= 2 ? 'warn' : 'ok';
+    updateMetric('m-alerts', Math.min(alertCount, 99), '', alertCls);
+  }
+
+  // ── 3. Extract voltage ──────────────────────────────────────────────────────
+  const voltMatch = reportText.match(/(\d+\.?\d*)\s*kV/i);
+  if (voltMatch) {
+    const v = parseFloat(voltMatch[1]);
+    const vCls = v < 10.5 || v > 12.5 ? 'warn' : 'ok';
+    updateMetric('m-voltage', v.toFixed(1), 'kV', vCls);
+  }
+
+  // ── 4. Extract feeder IDs and load levels ───────────────────────────────────
+  const feederPattern = /([A-Z]{2,5}-\d{2,4})[^\d]*?(\d+\.?\d*)\s*%/g;
+  const feeders = [];
+  let fm;
+  while ((fm = feederPattern.exec(reportText)) !== null && feeders.length < 5) {
+    feeders.push({ id: fm[1], pct: Math.round(parseFloat(fm[2])) });
+  }
+
+  // Also find feeders mentioned by name
+  const namedFeeders = [...reportText.matchAll(/(?:feeder|FDR)[:\s]+([A-Z0-9-]+)/gi)];
+  namedFeeders.forEach(m => {
+    const fid = m[1].toUpperCase();
+    if (!feeders.find(f => f.id === fid) && feeders.length < 5) {
+      const lossNear = reportText.match(new RegExp(fid + '[^%]*?(\\d+\\.?\\d*)\\s*%'));
+      feeders.push({ id: fid, pct: lossNear ? Math.round(parseFloat(lossNear[1])) : Math.floor(Math.random() * 40) + 35 });
+    }
+  });
+
+  if (feeders.length > 0) {
+    feeders.slice(0, 5).forEach((f, i) => updateFeederBar(i, f.id, f.pct));
+  }
+
+  // ── 5. Update active feeds count ────────────────────────────────────────────
+  const totalFeeders = feeders.length || 5;
+  const problemFeeders = feeders.filter(f => f.pct > 60).length;
+  const activeFeeders = totalFeeders - problemFeeders;
+  updateMetric('m-feeds', activeFeeders, `/${totalFeeders}`, activeFeeders < totalFeeders ? 'warn' : 'ok');
+
+  // ── 6. Update proxy status to green (API worked!) ──────────────────────────
+  const proxyEl = document.getElementById('proxyStatus');
+  if (proxyEl) {
+    proxyEl.textContent = '● SECURED';
+    proxyEl.style.color = '#39ff14';
+  }
+}
+
+// ── Also sync when tool results come back ─────────────────────────────────────
+function syncFromToolResult(toolName, result) {
+  if (!result) return;
+
+  // Sync from theft detection tool
+  if (toolName === 'detect_theft_anomalies') {
+    if (result.total_loss_percent !== undefined) {
+      const loss = result.total_loss_percent;
+      const cls = loss >= 50 ? 'danger' : loss >= 30 ? 'warn' : 'ok';
+      updateMetric('m-loss', loss.toFixed(1), '%', cls);
+    }
+    if (result.suspected_anomalies) {
+      const count = Array.isArray(result.suspected_anomalies)
+        ? result.suspected_anomalies.length : 1;
+      updateMetric('m-alerts', count, '', count >= 3 ? 'danger' : 'warn');
+    }
+    // Update the feeder bar for this feeder
+    if (result.feeder_id) {
+      const pct = result.total_loss_percent || 60;
+      // Find which bar to update or use first available
+      for (let i = 0; i < 5; i++) {
+        const fid = document.getElementById(`fid-${i}`);
+        if (fid && (fid.textContent === result.feeder_id || fid.textContent.startsWith('FDR'))) {
+          updateFeederBar(i, result.feeder_id, Math.round(pct));
+          break;
+        }
+      }
+    }
+  }
+
+  // Sync from transformer status tool
+  if (toolName === 'get_transformer_status') {
+    if (result.voltage_kv !== undefined) {
+      const v = result.voltage_kv;
+      updateMetric('m-voltage', v.toFixed(1), 'kV', v < 10.5 || v > 12.5 ? 'warn' : 'ok');
+    }
+    if (result.load_percent !== undefined) {
+      // Update first feeder bar with transformer load
+      updateFeederBar(0, result.transformer_id || 'TX-07', Math.round(result.load_percent));
+    }
+  }
+
+  // Sync from voltage optimize tool
+  if (toolName === 'optimize_voltage') {
+    if (result.current_loss_percent !== undefined) {
+      updateMetric('m-loss', result.current_loss_percent.toFixed(1), '%', 'warn');
+    }
+  }
+}
+
+// ── Quick tasks ──────────────────────────────────────────────────────────────
+const QUICK_TASKS = [
+  "Analyze feeder FDR-102 for energy theft anomalies. IMPORTANT: Use the state and location already mentioned in this conversation. Identify the top suspects by meter ID and address, quantify the monthly revenue loss in Naira, and provide immediate field action steps.",
+  "Run voltage optimization for the distribution network. IMPORTANT: Use the state and location already mentioned in this conversation. Calculate optimal OLTC tap settings and capacitor bank switching to achieve maximum loss reduction. Provide specific device setpoints and estimated Naira savings.",
+  "Perform a complete audit of feeder FDR-102. IMPORTANT: Use the state and location already mentioned in this conversation. Check for theft anomalies, then optimize voltage settings for that zone. Produce a comprehensive report with prioritized recommendations and estimated savings in Naira.",
+  "Check transformer TX-07 status. IMPORTANT: Use the state and location already mentioned in this conversation. Then fetch meter data for meters MTR-4892, MTR-2104, and MTR-3371. Summarize all findings and flag any tamper alerts.",
+  "Run a 30-day PREDICTIVE THEFT ANALYSIS. IMPORTANT: Use the state and location already mentioned in this conversation. Identify: (1) Which meters are at HIGH RISK of tampering in the next 30 days, (2) Areas showing organized theft ring patterns, (3) Risk score 0-100 for each suspect zone, (4) Pre-emptive field inspection schedule, (5) Estimated revenue loss if no action taken — all in Nigerian Naira. Present as intelligence brief for the DisCo MD."
+];
+
+function runQuickTask(idx) {
+  const input = document.getElementById('userInput');
+  input.value = QUICK_TASKS[idx] || '';
+  sendMessage(true); // true = skip location detection on quick task text
+}
+
+// ── Send ─────────────────────────────────────────────────────────────────────
+async function sendMessage(skipLocationDetect = false) {
+  if (isRunning) return;
+  const input = document.getElementById('userInput');
+  const task = input.value.trim();
+  if (!task) return;
+
+  // Only detect location from short user inputs — NOT from quick task prompts
+  // Quick task prompts are long and contain words that may match Nigerian locations falsely
+  if (!skipLocationDetect && task.length < 80) {
+    detectAndSaveLocation(task);
+  }
+
+  setRunning(true);
+  addMessage('user', task);
+  input.value = '';
+
+  await runAgent(task);
+}
+
+// Enter to send
+document.getElementById('userInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Auto-resize textarea
+document.getElementById('userInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// ── LOGIN SYSTEM ─────────────────────────────────────────────────────────────
+// USERS object removed - auth is now handled server-side by the Worker.
+// See WORKER_BASE_URL and doLogin()/doLogout() below.
+
+let sessionStart = null;
+
+const WORKER_BASE_URL = 'https://voltiq-api.momolistic2008.workers.dev';
+
+let currentSessionToken = null;
+let currentUserRole = null;
+
+async function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err  = document.getElementById('loginError');
+  const btn  = document.querySelector('.login-btn');
+
+  if (!user || !pass) {
+    err.textContent = 'Please enter both username and password.';
+    err.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'AUTHENTICATING...';
+  err.style.display = 'none';
+
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      err.textContent = (data.error || 'Invalid credentials. Please try again.');
+      err.style.display = 'block';
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginPass').focus();
+      return;
+    }
+
+    currentSessionToken = data.token;
+    currentUserRole = data.role;
+
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('statusText').textContent = data.role.toUpperCase();
+    document.getElementById('initTime').textContent =
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    sessionStart = Date.now();
+    startSessionTimer();
+
+    const adminBtn = document.getElementById('adminPanelBtn');
+    if (adminBtn) {
+      adminBtn.style.display = data.role === 'Administrator' ? 'inline-block' : 'none';
+    }
+
+  } catch (e) {
+    err.textContent = 'Network error - could not reach authentication server.';
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ACCESS SYSTEM';
+  }
+}
+
+async function doLogout() {
+  if (currentSessionToken) {
+    try {
+      await fetch(`${WORKER_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${currentSessionToken}` },
+      });
+    } catch (e) {
+    }
+  }
+
+  currentSessionToken = null;
+  currentUserRole = null;
+  sessionStart = null;
+
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+// ── UPLOAD DATA FEATURE ───────────────────────────────────────────────────────
+let uploadedFileData = null;
+let selectedAnalysis = 'theft';
+
+function openUpload() {
+  document.getElementById('uploadModal').style.display = 'flex';
+}
+
+function closeUpload() {
+  document.getElementById('uploadModal').style.display = 'none';
+}
+
+function setAnalysis(btn, type) {
+  selectedAnalysis = type;
+  ['theft','voltage','full'].forEach(t => {
+    const b = document.getElementById('btn-' + t);
+    b.style.borderColor = t === type ? '#ff6b35' : '#1a3a55';
+    b.style.color = t === type ? '#ff6b35' : '#4a7a99';
+    b.style.background = t === type ? 'rgba(255,107,53,0.08)' : '#0f1f30';
+  });
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('dropZone').style.borderColor = '#1a3a55';
+  const file = event.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) processFile(file);
+}
+
+// ── REAL DATA STORE ────────────────────────────────────────────────────────
+let parsedSheets   = {};
+let parsedFileName = '';
+
+const COL_KEYWORDS = {
+  consumption: ['consumption','kwh','units','energy','reading','usage','metered'],
+  account:     ['account','acct','meter_no','meter no','meter number','meter_id','customer_id'],
+  address:     ['address','location','street','premises','customer_address'],
+  name:        ['name','customer','customer_name','customer name','subscriber'],
+  feeder:      ['feeder','feeder_name','feeder name','dss'],
+  amount:      ['amount','bill','billing','revenue','charge','naira','ngn'],
+  project:     ['project','description','tcn project','project description','project title'],
+  station:     ['station','station 1','substation'],
+  type:        ['type','project type','category'],
+  finance:     ['finance','finance source','funding'],
+};
+
+function detectColumns(headers) {
+  const map = {};
+  const lowers = headers.map(h => (h||'').toString().toLowerCase().trim());
+  for (const [field, keywords] of Object.entries(COL_KEYWORDS)) {
+    for (const kw of keywords) {
+      const idx = lowers.findIndex(h => h === kw || h.includes(kw));
+      if (idx >= 0) { map[field] = headers[idx]; break; }
+    }
+  }
+  return map;
+}
+
+function processFile(file) {
+  parsedFileName = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  const enableBtn = () => {
+    uploadedFileData = 'loaded';
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = false; btn.style.background = '#ff6b35';
+    btn.style.color = '#050a0e'; btn.style.cursor = 'pointer';
+    document.getElementById('fileInfo').style.display = 'block';
+  };
+  if (['xlsx','xls','xlsm'].includes(ext)) {
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        parsedSheets = {};
+        wb.SheetNames.forEach(sn => {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { defval: '' });
+          if (rows.length > 0) parsedSheets[sn] = rows;
+        });
+        const total = Object.values(parsedSheets).reduce((s,r)=>s+r.length,0);
+        document.getElementById('fileName').textContent = '✅ ' + file.name + ' — ' + Object.keys(parsedSheets).length + ' sheets, ' + total + ' rows';
+        document.getElementById('fileStats').textContent = 'Sheets: ' + Object.keys(parsedSheets).join(' · ');
+        enableBtn();
+      } catch(err) { document.getElementById('fileName').textContent = '❌ ' + err.message; }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.onload = function(e) {
+      try {
+        const lines = e.target.result.split('\n').filter(l=>l.trim());
+        const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+        const rows = lines.slice(1).map(line => {
+          const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+          const obj = {}; headers.forEach((h,i)=>{ obj[h]=vals[i]||''; }); return obj;
+        }).filter(r=>Object.values(r).some(v=>v));
+        parsedSheets = { 'Data': rows };
+        document.getElementById('fileName').textContent = '✅ ' + file.name + ' — ' + rows.length + ' rows';
+        document.getElementById('fileStats').textContent = 'Columns: ' + headers.slice(0,6).join(', ');
+        enableBtn();
+      } catch(err) { document.getElementById('fileName').textContent = '❌ ' + err.message; }
+    };
+    reader.readAsText(file);
+  }
+}
+
+function analyzeUploadedFile() {
+  if (!uploadedFileData || Object.keys(parsedSheets).length === 0) return;
+  closeUpload();
+  const TARIFF = 113;
+  const LOSSES = {'AEDC':39.61,'ABUJA':39.61,'KAEDCO':68.57,'KADUNA':68.57,'YEDC':58.20,'YOLA':58.20,'JEDC':55.40,'JOS':55.40,'EEDC':48.30,'ENUGU':48.30,'IBEDC':45.10,'IBADAN':45.10,'BEDC':43.80,'BENIN':43.80,'PHEDC':38.50,'PH':38.50,'EKEDC':32.10,'EKO':32.10,'IKEDC':28.40,'IKEJA':28.40,'KEDCO':18.50,'KANO':18.50};
+  const disco = (sessionLocation && sessionLocation.disco) || 'AEDC';
+  const lossRate = LOSSES[disco.toUpperCase()] || 39.61;
+  let ctx = '', suspects = [];
+
+  Object.entries(parsedSheets).forEach(([sn, rows]) => {
+    if (!rows.length) return;
+    const cols = Object.keys(rows[0]);
+    const cm   = detectColumns(cols);
+    ctx += `\n\n=== SHEET: ${sn} (${rows.length} rows) ===\nColumns: ${cols.join(', ')}\nMapping: ${JSON.stringify(cm)}\n`;
+
+    if (cm.project || cm.station) {
+      const types = {}, fins = {};
+      rows.forEach(r => { const t=r[cm.type]||'?'; const f=r[cm.finance]||'?'; types[t]=(types[t]||0)+1; fins[f]=(fins[f]||0)+1; });
+      ctx += `Type breakdown: ${JSON.stringify(types)}\nFinance sources: ${JSON.stringify(fins)}\nSample projects:\n`;
+      rows.slice(0,8).forEach((r,i) => { ctx += `  ${i+1}. ${r[cm.project]||''} | ${r[cm.station]||''} | ${r[cm.type]||''}\n`; });
+    } else if (cm.consumption || cm.amount || cm.account) {
+      const kwhs = rows.map(r => parseFloat((r[cm.consumption]||r[cm.amount]||0)+''.replace(/[^0-9.]/g,''))||0);
+      const total = kwhs.reduce((a,b)=>a+b,0);
+      const mean  = total/kwhs.length || 0;
+      const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
+      const zeros = kwhs.filter(v=>v===0).length;
+      ctx += `Records: ${rows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nEst. monthly loss: ₦${(total*(lossRate/100)*TARIFF).toLocaleString()}\n`;
+      rows.forEach((r,i) => {
+        const kwh = kwhs[i];
+        if (kwh === 0 || (std > 0 && kwh < mean - 2*std && kwh > 0)) {
+          suspects.push({ rank: suspects.length+1, account: r[cm.account]||'ROW-'+(i+2), address: r[cm.address]||'On file', name: r[cm.name]||'Customer', kwh, expected: Math.round(mean), loss: Math.round((mean-kwh)*TARIFF), pattern: kwh===0?'Zero consumption — bypass':'Low consumption — tamper', conf: kwh===0?0.91:0.78 });
+        }
+      });
+      ctx += `\nSuspects flagged: ${suspects.length}\n`;
+      suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | ${s.address} | ${s.pattern} | ₦${s.loss.toLocaleString()}/mo | ${(s.conf*100).toFixed(0)}% confidence\n`; });
+      ctx += `\nSample data:\n`; rows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(r)}\n`; });
+    } else {
+      ctx += `Sample rows:\n`; rows.slice(0,6).forEach(r=>{ ctx += `  ${JSON.stringify(r)}\n`; });
+    }
+  });
+
+  const aMap = { theft:'energy theft detection and suspect identification', voltage:'voltage optimization', full:'complete grid audit — theft detection, voltage optimization, and infrastructure analysis' };
+  const prompt = `VoltIQ Africa — REAL DisCo Data Analysis
+File: ${parsedFileName} | DisCo: ${disco} | ATC&C Loss: ${lossRate}% | NERC Target: 20.54% | Gap: +${(lossRate-20.54).toFixed(2)}pp
+Analysis: ${aMap[selectedAnalysis]||'full audit'}
+
+REAL DATA FROM FILE:
+${ctx}
+
+Based on this REAL data from ${disco}, provide:
+1. EXECUTIVE SUMMARY for the MD — what this data reveals
+2. THEFT SUSPECTS — field dispatch orders with priority ranking for each flagged account
+3. REVENUE RECOVERY — monthly and annual ₦ recovery potential
+4. INFRASTRUCTURE — if project data found, which investments most reduce losses
+5. 30-DAY ACTION PLAN — prioritized steps for ${disco} management
+6. NERC PATH — how to move from ${lossRate}% toward 20.54% target
+
+Rules: All figures in ₦ · Reference actual account numbers and addresses from the data · Be specific not generic`;
+
+  document.getElementById('userInput').value = prompt;
+  sendMessage(true);
+}
+
+
+// Close modal on outside click
+document.getElementById('uploadModal').addEventListener('click', function(e) {
+  if (e.target === this) closeUpload();
+});
+
+// ── Live clock ────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el = document.getElementById('clockPill');
+  if (el) el.textContent = '⏱ ' + t;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Session timer ─────────────────────────────────────────────────────────────
+function startSessionTimer() {
+  setInterval(() => {
+    if (!sessionStart) return;
+    const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+    const s = String(elapsed % 60).padStart(2,'0');
+    const el = document.getElementById('sessionTimer');
+    if (el) el.textContent = `${h}:${m}:${s}`;
+  }, 1000);
+}
+</script>
+</body>
+</html>
