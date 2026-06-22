@@ -1493,6 +1493,151 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+class TransformerPhysicsEngine {
+  constructor(options = {}) {
+    this.ratedCapacityKva = options.ratedCapacityKva ?? 500;
+    this.ambientTempC = options.ambientTempC ?? 32;
+    this.baseTempRiseC = options.baseTempRiseC ?? 45;
+    this.basePf = options.basePf ?? 0.97;
+    this.targetPf = options.targetPf ?? 0.95;
+  }
+  computeStatus(loadPct) {
+    const tempRiseC = this._computeTempRise(loadPct);
+    const ambientPlusRise = this.ambientTempC + tempRiseC;
+    const pf = this._computePowerFactor(loadPct);
+    const realPowerKw = (loadPct / 100) * this.ratedCapacityKva * pf;
+    const reactiveDeficitKvar = this._computeReactiveDeficit(realPowerKw, pf);
+    const status = this._classifyStatus(loadPct, ambientPlusRise);
+    return {
+      loadPercent: Math.round(loadPct * 10) / 10,
+      temperatureC: Math.round(ambientPlusRise * 10) / 10,
+      tempRiseC: Math.round(tempRiseC * 10) / 10,
+      powerFactor: Math.round(pf * 1000) / 1000,
+      powerFactorStatus: pf < 0.90 ? 'below_optimal_needs_correction' : 'acceptable',
+      realPowerKw: Math.round(realPowerKw * 10) / 10,
+      reactivePowerNeededKvar: pf < 0.90 ? Math.round(reactiveDeficitKvar) : 0,
+      status,
+      alert: status === 'overloaded'
+        ? `OVERLOAD ALERT \u2014 load at ${loadPct.toFixed(1)}% of rated capacity, temperature ${ambientPlusRise.toFixed(1)}\u00b0C \u2014 immediate action required`
+        : null,
+      recommendation: this._buildRecommendation(loadPct, pf, reactiveDeficitKvar, status),
+    };
+  }
+  _computeTempRise(loadPct) {
+    const loadFraction = loadPct / 100;
+    return this.baseTempRiseC * Math.pow(loadFraction, 1.6);
+  }
+  _computePowerFactor(loadPct) {
+    const overloadFraction = Math.max(0, loadPct - 80) / 100;
+    const degradation = overloadFraction * 0.35;
+    return Math.max(0.65, this.basePf - degradation);
+  }
+  _computeReactiveDeficit(realPowerKw, currentPf) {
+    if (currentPf >= this.targetPf) return 0;
+    const phiCurrent = Math.acos(currentPf);
+    const phiTarget = Math.acos(this.targetPf);
+    return realPowerKw * (Math.tan(phiCurrent) - Math.tan(phiTarget));
+  }
+  _classifyStatus(loadPct, tempC) {
+    if (loadPct > 90 || tempC > 95) return 'overloaded';
+    if (loadPct > 75 || tempC > 80) return 'high_load';
+    return 'operational';
+  }
+  _buildRecommendation(loadPct, pf, reactiveDeficitKvar, status) {
+    if (status === 'overloaded') {
+      return `Transformer is overloaded at ${loadPct.toFixed(1)}% of rated capacity. Recommend load redistribution to adjacent feeders or capacity upgrade evaluation.`;
+    }
+    if (pf < 0.85) {
+      return `Power factor of ${pf.toFixed(2)} is below optimal. Install capacitor bank rated ${Math.round(reactiveDeficitKvar)} kVAR to correct to target ${this.targetPf}. This reduces apparent power draw and associated technical losses.`;
+    }
+    return `Transformer operating within normal parameters at ${loadPct.toFixed(1)}% load.`;
+  }
+}
+
+class VoltageOptimizationEngine {
+  constructor(options = {}) {
+    this.nominalVoltageKv = options.nominalVoltageKv ?? 11.0;
+    this.targetVoltageKv = options.targetVoltageKv ?? 11.4;
+    this.tapStepPct = options.tapStepPct ?? 1.25;
+    this.maxTapSteps = options.maxTapSteps ?? 16;
+    this.tariffNgnPerKwh = options.tariffNgnPerKwh ?? 68.0;
+    this.assumedZoneLoadKw = options.assumedZoneLoadKw ?? 2500;
+  }
+  optimize(currentVoltageKv, currentPf = 0.93) {
+    const voltageDeviationPct = ((this.targetVoltageKv - currentVoltageKv) / this.nominalVoltageKv) * 100;
+    const tapStepsNeeded = Math.round(voltageDeviationPct / this.tapStepPct);
+    const clampedTaps = Math.max(-this.maxTapSteps, Math.min(this.maxTapSteps, tapStepsNeeded));
+    const projectedVoltageKv = currentVoltageKv + (clampedTaps * this.tapStepPct / 100) * this.nominalVoltageKv;
+    const lossReductionPct = this._computeLossReduction(currentVoltageKv, projectedVoltageKv);
+    const reactiveDeficitKvar = this._computeCapacitorSizing(currentPf);
+    const dailyEnergyKwh = this.assumedZoneLoadKw * 24;
+    const savingsKwhPerDay = dailyEnergyKwh * (lossReductionPct / 100);
+    const savingsNgnPerMonth = savingsKwhPerDay * 30 * this.tariffNgnPerKwh;
+    return {
+      currentVoltageKv: Math.round(currentVoltageKv * 100) / 100,
+      targetVoltageKv: this.targetVoltageKv,
+      voltageDeviationPct: Math.round(voltageDeviationPct * 100) / 100,
+      recommendedTapChange: clampedTaps,
+      tapDirection: clampedTaps > 0 ? 'raise' : clampedTaps < 0 ? 'lower' : 'no_change',
+      projectedVoltageKv: Math.round(projectedVoltageKv * 100) / 100,
+      lossReductionPct: Math.round(lossReductionPct * 100) / 100,
+      capacitorBankKvar: Math.round(reactiveDeficitKvar),
+      estimatedSavingsKwhPerDay: Math.round(savingsKwhPerDay),
+      estimatedSavingsNgnPerMonth: Math.round(savingsNgnPerMonth),
+    };
+  }
+  _computeLossReduction(vOld, vNew) {
+    if (vNew <= 0 || vOld <= 0) return 0;
+    const ratio = vOld / vNew;
+    const reduction = (1 - ratio * ratio) * 100;
+    return Math.max(0, reduction);
+  }
+  _computeCapacitorSizing(currentPf, targetPf = 0.95) {
+    if (currentPf >= targetPf) return 0;
+    const phiCurrent = Math.acos(currentPf);
+    const phiTarget = Math.acos(targetPf);
+    return this.assumedZoneLoadKw * (Math.tan(phiCurrent) - Math.tan(phiTarget));
+  }
+}
+
+const METER_ACCOUNT_TYPES = ['residential', 'commercial'];
+const METER_TARIFF_BANDS = ['A', 'B', 'C', 'D'];
+
+function generateMeterProfile(meterId, loc, forceTamperFirst, isFirst) {
+  const accountType = pick(METER_ACCOUNT_TYPES);
+  const tariffBand = pick(METER_TARIFF_BANDS);
+  const baselineDaily = accountType === 'commercial' ? 25 + Math.random() * 60 : 5 + Math.random() * 25;
+  const isTampered = isFirst && forceTamperFirst ? true : Math.random() < 0.12;
+  let consumption30d, avgDaily, tamperType, creditBalance;
+  if (isTampered) {
+    avgDaily = baselineDaily * (0.05 + Math.random() * 0.25);
+    consumption30d = Math.round(avgDaily * 30);
+    tamperType = pick(['potential_bypass_detected', 'meter_reversal_suspected', 'under_registration_suspected']);
+    creditBalance = Math.round(Math.random() * 1500);
+  } else {
+    avgDaily = baselineDaily * (0.85 + Math.random() * 0.3);
+    consumption30d = Math.round(avgDaily * 30);
+    tamperType = null;
+    creditBalance = Math.round(1000 + Math.random() * 9000);
+  }
+  return {
+    id: meterId,
+    address: `${rnd(1, 50)} ${pick(loc.streets)}`,
+    area: pick(loc.areas),
+    state: loc.state,
+    lga: loc.lga,
+    consumption_kwh_30d: consumption30d,
+    avg_daily_kwh: Math.round(avgDaily * 10) / 10,
+    last_reading: new Date().toISOString().slice(0, 10),
+    tamper_flag: isTampered,
+    tamper_type: tamperType,
+    credit_balance_ngn: creditBalance,
+    account_type: accountType,
+    tariff_band: tariffBand,
+    disco: loc.disco,
+  };
+}
+
 const ANOMALY_TYPES = {
   ZERO_CONSUMPTION: 'zero_consumption_active_connection',
   SEVERE_DROP: 'severe_consumption_drop',
@@ -1974,10 +2119,8 @@ function executeTool(name, args) {
 
   if (name === "get_transformer_status") {
     const loadPct = rnd(52, 94);
-    const tempC   = rnd(62, 88);
-    const pf      = parseFloat((0.80 + Math.random()*0.15).toFixed(2));
-    const vkv     = parseFloat((10.6 + Math.random()*1.6).toFixed(1));
-    const status  = loadPct > 88 ? "overloaded" : loadPct > 75 ? "high_load" : "operational";
+    const engine = new TransformerPhysicsEngine();
+    const physics = engine.computeStatus(loadPct);
     return {
       transformer_id: args.transformer_id,
       disco_name: loc.disco,
@@ -1986,19 +2129,18 @@ function executeTool(name, args) {
       substation: loc.substation,
       lga: loc.lga,
       zone: loc.zone,
-      voltage_kv: vkv,
-      load_percent: loadPct,
-      temperature_c: tempC,
-      status,
-      power_factor: pf,
-      power_factor_status: pf < 0.90 ? "below_optimal_needs_correction" : "acceptable",
-      reactive_power_needed_kvar: pf < 0.90 ? rnd(150, 600) : 0,
+      voltage_kv: parseFloat((10.6 + Math.random()*1.6).toFixed(1)),
+      load_percent: physics.loadPercent,
+      temperature_c: physics.temperatureC,
+      status: physics.status,
+      power_factor: physics.powerFactor,
+      power_factor_status: physics.powerFactorStatus,
+      reactive_power_needed_kvar: physics.reactivePowerNeededKvar,
       last_fault: "2026-01-14T03:22:00Z",
       last_updated: now,
-      alert: loadPct > 88 ? `OVERLOAD ALERT at ${loc.substation} — immediate action required` : null,
-      recommendation: pf < 0.85
-        ? `Install capacitor bank at ${loc.substation} to correct power factor from ${pf} to 0.95+. Estimated savings: ₦${rnd(200,600).toLocaleString()}K/month`
-        : `Transformer operating within normal parameters in ${loc.state.split(' ')[0]}`
+      alert: physics.alert,
+      recommendation: physics.recommendation,
+      data_note: "Load% is simulated; temperature, power factor, and reactive power needs are DERIVED from load using real transformer thermal and electrical formulas \u2014 not independently randomized. Connect live SCADA/AMI telemetry for production values.",
     };
   }
 
@@ -2046,59 +2188,67 @@ function executeTool(name, args) {
   }
 
   if (name === "optimize_voltage") {
-    const currentLoss = parseFloat((5.2 + Math.random()*3.8).toFixed(1));
-    const savingsKwh  = rnd(800, 1800);
-    const savingsNgn  = Math.floor(savingsKwh * 30 * TARIFF);
+    const currentVoltage = parseFloat((10.6 + Math.random()*1.4).toFixed(2));
+    const currentPf = parseFloat((0.85 + Math.random()*0.10).toFixed(2));
+    const engine = new VoltageOptimizationEngine();
+    const result = engine.optimize(currentVoltage, currentPf);
+
     const txNum  = rnd(1,20).toString().padStart(2,'0');
     const cbNum  = rnd(1,8).toString().padStart(2,'0');
-    const vrNum  = rnd(10,25);
     const street1 = pick(loc.streets);
     const street2 = pick(loc.streets);
+
+    const recommendations = [];
+    if (result.recommendedTapChange !== 0) {
+      recommendations.push({
+        device: `OLTC TX-${txNum}`,
+        location: loc.substation,
+        action: `Tap position ${result.recommendedTapChange > 0 ? '+' : ''}${result.recommendedTapChange}`,
+        expected_improvement_percent: Math.round(result.lossReductionPct * 0.6 * 10) / 10,
+      });
+    }
+    if (result.capacitorBankKvar > 0) {
+      recommendations.push({
+        device: `Capacitor Bank CB-${cbNum}`,
+        location: `${pick(loc.areas)} Grid Station, ${loc.state}`,
+        action: `Switch ON ${result.capacitorBankKvar} kVAr`,
+        expected_improvement_percent: Math.round(result.lossReductionPct * 0.4 * 10) / 10,
+      });
+    }
+
     return {
       zone_id: args.zone_id,
       disco: loc.disco,
       location: `${pick(loc.areas)}, ${loc.state}`,
       zone_label: `${loc.state.split(' ')[0]} ${loc.zone} Zone`,
       lga: loc.lga,
-      current_avg_voltage_kv: parseFloat((10.6 + Math.random()*1.4).toFixed(1)),
-      current_loss_percent: currentLoss,
-      target_loss_reduction_percent: args.target_loss_reduction || 10,
-      recommendations: [
-        { device:`OLTC TX-${txNum}`, location:`${loc.substation}`, action:"Tap position -2", expected_improvement_percent:3.2 },
-        { device:`Capacitor Bank CB-${cbNum}`, location:`${pick(loc.areas)} Grid Station, ${loc.state}`, action:`Switch ON ${rnd(300,600)} kVAr`, expected_improvement_percent:2.8 },
-        { device:`Voltage Regulator VR-${vrNum}`, location:`${rnd(1,40)} ${street1}`, action:"Set to 11.6 kV", expected_improvement_percent:1.9 }
-      ],
-      total_expected_loss_reduction_percent: 7.9,
-      estimated_savings_kwh_per_day: savingsKwh,
-      estimated_savings_ngn_per_month: savingsNgn,
+      current_avg_voltage_kv: result.currentVoltageKv,
+      target_voltage_kv: result.targetVoltageKv,
+      voltage_deviation_percent: result.voltageDeviationPct,
+      recommended_tap_change: result.recommendedTapChange,
+      tap_direction: result.tapDirection,
+      projected_voltage_kv: result.projectedVoltageKv,
+      current_loss_percent: Math.round((5 + Math.random()*3) * 10) / 10,
+      total_expected_loss_reduction_percent: result.lossReductionPct,
+      recommendations,
+      estimated_savings_kwh_per_day: result.estimatedSavingsKwhPerDay,
+      estimated_savings_ngn_per_month: result.estimatedSavingsNgnPerMonth,
       cautions: [
         `Monitor end-of-line voltage at ${rnd(1,50)} ${street2}, ${loc.state}`,
         `Coordinate capacitor bank switching with ${loc.state.split(' ')[0]} load dispatch centre`,
         `Verify OLTC oil level at ${loc.substation} before tap change`
-      ]
+      ],
+      data_note: "Current voltage and power factor are simulated; tap sizing and loss-reduction figures are DERIVED using standard OLTC step-sizing and the voltage-loss square law (P_loss \u221d 1/V\u00b2) \u2014 not independently randomized. Savings assume a generic zone load until tied to real feeder data.",
     };
   }
 
   if (name === "fetch_meter_data") {
+    const meterIds = args.meter_ids || [];
     return {
       disco: loc.disco,
       location: loc.state,
-      meters: (args.meter_ids || []).map((id, idx) => ({
-        id,
-        address: `${rnd(1,50)} ${pick(loc.streets)}`,
-        area: pick(loc.areas),
-        state: loc.state,
-        lga: loc.lga,
-        consumption_kwh_30d: rnd(180, 820),
-        avg_daily_kwh: rnd(8, 35),
-        last_reading: "2026-03-28",
-        tamper_flag: idx === 0,
-        tamper_type: idx === 0 ? "potential_bypass_detected" : null,
-        credit_balance_ngn: rnd(0, 8000),
-        account_type: idx === 0 ? "commercial" : "residential",
-        tariff_band: ["A","B","C","D"][idx % 4],
-        disco: loc.disco
-      }))
+      meters: meterIds.map((id, idx) => generateMeterProfile(id, loc, true, idx === 0)),
+      data_note: "Synthetic demo data \u2014 each meter profile (consumption, tamper flag, credit balance) is generated as an internally consistent set, not independent random fields. Upload real meter data for analysis on actual records.",
     };
   }
 
