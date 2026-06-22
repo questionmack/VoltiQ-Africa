@@ -3889,6 +3889,18 @@ async function doLogin() {
     currentSessionToken = data.token;
     currentUserRole = data.role;
 
+    // Persist to sessionStorage so a page refresh doesn't force re-login.
+    // sessionStorage clears when the tab/window closes — token still
+    // expires server-side after 12 hours regardless.
+    try {
+      sessionStorage.setItem('voltiq_token', data.token);
+      sessionStorage.setItem('voltiq_role', data.role);
+      sessionStorage.setItem('voltiq_username', data.username || user);
+    } catch (e) {
+      // sessionStorage unavailable (private browsing edge cases on some
+      // browsers) — session just won't survive refresh, login still works.
+    }
+
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('statusText').textContent = data.role.toUpperCase();
     document.getElementById('initTime').textContent =
@@ -3926,11 +3938,80 @@ async function doLogout() {
   currentUserRole = null;
   sessionStart = null;
 
+  try {
+    sessionStorage.removeItem('voltiq_token');
+    sessionStorage.removeItem('voltiq_role');
+    sessionStorage.removeItem('voltiq_username');
+  } catch (e) {
+    // sessionStorage unavailable — nothing to clear.
+  }
+
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
   document.getElementById('loginError').style.display = 'none';
   document.getElementById('loginOverlay').style.display = 'flex';
 }
+// ─────────────────────────────────────────────────────────────────────────
+// SESSION RESTORE — runs on page load. If a valid token exists in
+// sessionStorage, verifies it with the Worker and skips the login screen.
+// ─────────────────────────────────────────────────────────────────────────
+async function checkExistingSession() {
+  let storedToken, storedRole, storedUsername;
+  try {
+    storedToken = sessionStorage.getItem('voltiq_token');
+    storedRole = sessionStorage.getItem('voltiq_role');
+    storedUsername = sessionStorage.getItem('voltiq_username');
+  } catch (e) {
+    return false; // sessionStorage unavailable — show normal login
+  }
+
+  if (!storedToken) return false;
+
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/auth/verify`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${storedToken}` },
+    });
+
+    if (!res.ok) {
+      // Token expired or invalid server-side — clear stale local data.
+      sessionStorage.removeItem('voltiq_token');
+      sessionStorage.removeItem('voltiq_role');
+      sessionStorage.removeItem('voltiq_username');
+      return false;
+    }
+
+    const data = await res.json();
+    if (!data.valid) return false;
+
+    // Token is valid — restore the session without showing login screen.
+    currentSessionToken = storedToken;
+    currentUserRole = storedRole;
+
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('statusText').textContent = storedRole.toUpperCase();
+    document.getElementById('initTime').textContent =
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    sessionStart = Date.now();
+    startSessionTimer();
+
+    const adminBtn = document.getElementById('adminPanelBtn');
+    if (adminBtn) {
+      adminBtn.style.display = storedRole === 'Administrator' ? 'inline-block' : 'none';
+    }
+
+    return true;
+  } catch (e) {
+    // Network error during verify — fall through to normal login screen
+    // rather than silently failing into a broken state.
+    return false;
+  }
+}
+
+// Run the session check as soon as the script loads.
+checkExistingSession();
+
 
 // ── UPLOAD DATA FEATURE ───────────────────────────────────────────────────────
 let uploadedFileData = null;
