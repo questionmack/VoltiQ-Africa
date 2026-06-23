@@ -755,8 +755,18 @@
   #loginOverlay {
     position: fixed; inset: 0; z-index: 9999;
     background: #050a0e;
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  #sessionCheckScreen {
+    position: fixed; inset: 0; z-index: 9998;
+    background: #050a0e;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column;
+  }
+  #sessionCheckScreen .check-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: #4a7a99; letter-spacing: 2px;
   }
   #loginOverlay::before {
     content: '';
@@ -889,6 +899,9 @@
 <body>
 
 <!-- ── LOGIN OVERLAY ── -->
+<div id="sessionCheckScreen">
+  <div class="check-text">VERIFYING SESSION...</div>
+</div>
 <div id="loginOverlay">
   <div class="login-box">
     <div class="login-logo">
@@ -3958,18 +3971,31 @@ async function doLogout() {
 // sessionStorage, verifies it with the Worker and skips the login screen.
 // ─────────────────────────────────────────────────────────────────────────
 async function checkExistingSession() {
-  console.log('TRACER: checkExistingSession() called at', new Date().toISOString());
-  window.sessionCheckRan = true;
+  const hideLoadingScreen = () => {
+    const el = document.getElementById('sessionCheckScreen');
+    if (el) el.style.display = 'none';
+  };
+  const showLoginOverlay = () => {
+    const el = document.getElementById('loginOverlay');
+    if (el) el.style.display = 'flex';
+  };
+
   let storedToken, storedRole, storedUsername;
   try {
     storedToken = sessionStorage.getItem('voltiq_token');
     storedRole = sessionStorage.getItem('voltiq_role');
     storedUsername = sessionStorage.getItem('voltiq_username');
   } catch (e) {
-    return false; // sessionStorage unavailable — show normal login
+    hideLoadingScreen();
+    showLoginOverlay();
+    return false;
   }
 
-  if (!storedToken) return false;
+  if (!storedToken) {
+    hideLoadingScreen();
+    showLoginOverlay();
+    return false;
+  }
 
   try {
     const res = await fetch(`${WORKER_BASE_URL}/auth/verify`, {
@@ -3978,22 +4004,26 @@ async function checkExistingSession() {
     });
 
     if (!res.ok) {
-      // Token expired or invalid server-side — clear stale local data.
       sessionStorage.removeItem('voltiq_token');
       sessionStorage.removeItem('voltiq_role');
       sessionStorage.removeItem('voltiq_username');
+      hideLoadingScreen();
+      showLoginOverlay();
       return false;
     }
 
     const data = await res.json();
-    if (!data.valid) return false;
+    if (!data.valid) {
+      hideLoadingScreen();
+      showLoginOverlay();
+      return false;
+    }
 
     // Token is valid — restore the session without showing login screen.
     currentSessionToken = storedToken;
     currentUserRole = storedRole;
 
-    document.getElementById('loginOverlay').style.display = 'none';
-    console.log('TRACER: overlay set to none, checking actual state:', document.getElementById('loginOverlay').style.display);
+    hideLoadingScreen();
     document.getElementById('statusText').textContent = storedRole.toUpperCase();
     document.getElementById('initTime').textContent =
       new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -4008,8 +4038,8 @@ async function checkExistingSession() {
 
     return true;
   } catch (e) {
-    // Network error during verify — fall through to normal login screen
-    // rather than silently failing into a broken state.
+    hideLoadingScreen();
+    showLoginOverlay();
     return false;
   }
 }
