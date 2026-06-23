@@ -998,6 +998,9 @@
         <!-- Select DisCo toggle -->
         <button onclick="toggleDiscoGrid()" id="discoToggleBtn" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">⚡ SELECT DisCo ▾</button>
 
+        <!-- Pilot Tracking button — visible to all logged-in users -->
+        <button id="pilotTrackingBtn" onclick="openPilotTracking()" style="background:rgba(0,212,255,0.08);border:1px solid #00d4ff;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(0,212,255,0.18)'" onmouseout="this.style.background='rgba(0,212,255,0.08)'">📋 PILOT TRACKING</button>
+
         <!-- Admin Panel button — only shown to admin -->
         <button id="adminPanelBtn" onclick="openAdminPanel()" style="display:none;background:rgba(255,107,53,0.08);border:1px solid #ff6b35;color:#ff6b35;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,107,53,0.18)'" onmouseout="this.style.background='rgba(255,107,53,0.08)'">⚙ ADMINISTRATION</button>
 
@@ -1156,6 +1159,25 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Pilot Tracking Modal -->
+  <div id="pilotTrackingModal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(5,10,14,0.96);align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;">
+    <div style="background:#0a1520;border:1px solid #1a3a55;border-top:3px solid #00d4ff;width:100%;max-width:800px;box-shadow:0 0 60px rgba(0,212,255,0.1);">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #1a3a55;background:rgba(0,212,255,0.04);">
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:#00d4ff;letter-spacing:2px;">📋 PILOT TRACKING — FIELD CONFIRMATION</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#4a7a99;margin-top:3px;">Real precision builds from confirmed field inspections, not synthetic data</div>
+        </div>
+        <button onclick="closePilotTracking()" style="background:none;border:1px solid #1a3a55;color:#4a7a99;font-size:1.1rem;cursor:pointer;padding:4px 10px;">✕</button>
+      </div>
+      <div style="padding:20px;">
+        <div id="pilotStatsContent"></div>
+        <div style="font-family:'Orbitron',monospace;font-size:0.7rem;color:#ffaa00;letter-spacing:1px;margin:16px 0 10px;border-bottom:1px solid #1a3a55;padding-bottom:6px;">PENDING FIELD CONFIRMATION</div>
+        <div id="pilotPendingList"></div>
       </div>
     </div>
   </div>
@@ -1506,6 +1528,161 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+async function logSuspectForTracking(suspect, discoName) {
+  try {
+    await fetch(`${WORKER_BASE_URL}/confirmations/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+      body: JSON.stringify({
+        meterId: suspect.meter_id,
+        address: suspect.address,
+        area: suspect.area,
+        discoName: discoName,
+        anomalyType: suspect.anomaly_type,
+        zScore: suspect.z_score,
+        confidence: suspect.confidence,
+        estimatedMonthlyLossNgn: suspect.monthly_loss_ngn,
+      }),
+    });
+  } catch (e) {
+    console.warn('Could not log suspect for field tracking:', e);
+  }
+}
+
+async function fetchPilotStats() {
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/confirmations/stats`, {
+      headers: { 'Authorization': `Bearer ${currentSessionToken}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchPendingConfirmations() {
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/confirmations/list?status=pending`, {
+      headers: { 'Authorization': `Bearer ${currentSessionToken}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.records || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function submitConfirmation(suspectId, status, fieldNotes, actualLossNgn) {
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/confirmations/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+      body: JSON.stringify({ suspectId, status, fieldNotes, actualLossNgn }),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+function openPilotTracking() {
+  document.getElementById('pilotTrackingModal').style.display = 'flex';
+  refreshPilotTracking();
+}
+
+function closePilotTracking() {
+  document.getElementById('pilotTrackingModal').style.display = 'none';
+}
+
+async function refreshPilotTracking() {
+  const statsEl = document.getElementById('pilotStatsContent');
+  const listEl = document.getElementById('pilotPendingList');
+  statsEl.innerHTML = '<div style="color:#4a7a99;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Loading...</div>';
+  listEl.innerHTML = '';
+
+  const stats = await fetchPilotStats();
+  const pending = await fetchPendingConfirmations();
+
+  if (!stats) {
+    statsEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Could not load pilot stats.</div>';
+    return;
+  }
+
+  const precisionDisplay = stats.realPrecision !== null
+    ? (stats.realPrecision * 100).toFixed(1) + '%'
+    : '— (no field checks yet)';
+  const precisionColor = stats.realPrecision !== null
+    ? (stats.realPrecision >= 0.5 ? '#39ff14' : '#ffaa00')
+    : '#4a7a99';
+
+  statsEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#1a3a55;margin-bottom:12px;">
+      <div style="background:#0f1f30;padding:12px;text-align:center;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;">TOTAL FLAGGED</div>
+        <div style="font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:700;color:#00d4ff;">${stats.totalFlagged}</div>
+      </div>
+      <div style="background:#0f1f30;padding:12px;text-align:center;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;">FIELD-CHECKED</div>
+        <div style="font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:700;color:#ffaa00;">${stats.checkedCount}</div>
+      </div>
+      <div style="background:#0f1f30;padding:12px;text-align:center;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;">REAL PRECISION</div>
+        <div style="font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:700;color:${precisionColor};">${precisionDisplay}</div>
+      </div>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;margin-bottom:16px;line-height:1.6;">
+      ${stats.note}<br>
+      Confirmed theft: <span style="color:#39ff14;">${stats.confirmedTheft}</span> ·
+      False positives: <span style="color:#ff3366;">${stats.falsePositive}</span> ·
+      Meter faults: <span style="color:#ffaa00;">${stats.meterFault}</span> ·
+      Pending: <span style="color:#4a7a99;">${stats.pending}</span>
+      ${stats.confirmedTheft > 0 ? `<br>Confirmed actual losses recovered: <span style="color:#39ff14;">₦${stats.totalActualLossNgn.toLocaleString()}</span>/month` : ''}
+    </div>
+  `;
+
+  if (pending.length === 0) {
+    listEl.innerHTML = '<div style="color:#4a7a99;font-family:\'Share Tech Mono\',monospace;font-size:0.68rem;text-align:center;padding:20px;">No pending suspects awaiting field confirmation.</div>';
+    return;
+  }
+
+  listEl.innerHTML = pending.map(record => `
+    <div style="background:#0f1f30;border:1px solid #1a3a55;border-left:3px solid #ffaa00;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:#00d4ff;font-weight:700;">${record.meterId}</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#c8e6f0;margin-top:2px;">${record.address}, ${record.area}</div>
+        </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#ffaa00;text-align:right;">₦${(record.estimatedMonthlyLossNgn || 0).toLocaleString()}/mo est.</div>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:#4a7a99;margin-bottom:10px;">${record.anomalyType || ''} ${record.zScore ? '· z=' + record.zScore : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="handleConfirmClick('${record.suspectId}', 'confirmed_theft')" style="background:rgba(57,255,20,0.1);border:1px solid #39ff14;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:6px 12px;cursor:pointer;">✓ CONFIRMED THEFT</button>
+        <button onclick="handleConfirmClick('${record.suspectId}', 'false_positive')" style="background:rgba(255,51,102,0.1);border:1px solid #ff3366;color:#ff3366;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:6px 12px;cursor:pointer;">✕ FALSE POSITIVE</button>
+        <button onclick="handleConfirmClick('${record.suspectId}', 'meter_fault')" style="background:rgba(255,170,0,0.1);border:1px solid #ffaa00;color:#ffaa00;font-family:'Share Tech Mono',monospace;font-size:0.6rem;padding:6px 12px;cursor:pointer;">⚠ METER FAULT</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function handleConfirmClick(suspectId, status) {
+  const labels = { confirmed_theft: 'confirmed theft', false_positive: 'false positive', meter_fault: 'meter fault' };
+  let actualLossNgn = null;
+  if (status === 'confirmed_theft') {
+    const input = prompt(`Confirming ${labels[status]}. Enter the actual monthly loss in NGN found by the field team (or leave blank to use the estimate):`);
+    if (input && !isNaN(parseFloat(input))) actualLossNgn = parseFloat(input);
+  }
+  const notes = prompt(`Optional field notes for this ${labels[status]} record:`) || '';
+
+  const success = await submitConfirmation(suspectId, status, notes, actualLossNgn);
+  if (success) {
+    refreshPilotTracking();
+  } else {
+    alert('Could not save confirmation. Please check your connection and try again.');
+  }
+}
+
 class TransformerPhysicsEngine {
   constructor(options = {}) {
     this.ratedCapacityKva = options.ratedCapacityKva ?? 500;
@@ -2189,6 +2366,12 @@ function executeTool(name, args) {
       flagged_count: analysis.flaggedCount,
       suspected_anomalies: suspects,
       estimated_monthly_revenue_loss_ngn: analysis.totalEstimatedLossNgn,
+      _pilotTrackingFired: (() => {
+        if (typeof logSuspectForTracking === 'function' && suspects.length > 0) {
+          suspects.forEach(s => logSuspectForTracking(s, loc.disco));
+        }
+        return true;
+      })(),
       annual_revenue_loss_ngn: Math.round(analysis.totalEstimatedLossNgn * 12 * 100) / 100,
       investigation_cost_ngn: 150000,
       investigation_roi_percent: analysis.totalEstimatedLossNgn > 0
