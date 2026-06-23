@@ -3993,6 +3993,7 @@ async function checkExistingSession() {
     currentUserRole = storedRole;
 
     document.getElementById('loginOverlay').style.display = 'none';
+    console.log('TRACER: overlay set to none, checking actual state:', document.getElementById('loginOverlay').style.display);
     document.getElementById('statusText').textContent = storedRole.toUpperCase();
     document.getElementById('initTime').textContent =
       new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
