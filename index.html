@@ -3958,6 +3958,8 @@ async function doLogout() {
 // sessionStorage, verifies it with the Worker and skips the login screen.
 // ─────────────────────────────────────────────────────────────────────────
 async function checkExistingSession() {
+  console.log('TRACER: checkExistingSession() called at', new Date().toISOString());
+  window.sessionCheckRan = true;
   let storedToken, storedRole, storedUsername;
   try {
     storedToken = sessionStorage.getItem('voltiq_token');
