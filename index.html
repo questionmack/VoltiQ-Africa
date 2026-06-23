@@ -3210,6 +3210,10 @@ CRITICAL RULES — FOLLOW STRICTLY:
 
 8. When the user says "run voltage optimization" — immediately call optimize_voltage with zone_id based on current location context.
 
+9. NEVER cite a comparison number (industry benchmark, threshold, average, etc.) unless it actually appears in the tool's JSON output. The detect_theft_anomalies, optimize_voltage, and get_transformer_status tools do NOT return an "industry benchmark" or "threshold" field -- do not invent one (e.g. do not say "double the 8% industry threshold" or "10% benchmark"). Report only total_loss_percent, flagged_count, and the other fields actually present in the tool result. If you want to characterize severity, describe it qualitatively ("a high loss rate" or "well above typical levels") without attaching a specific unsourced percentage.
+
+9. NEVER cite a comparison number (industry benchmark, threshold, average, etc.) unless it actually appears in the tool's JSON output. The detect_theft_anomalies, optimize_voltage, and get_transformer_status tools do NOT return an "industry benchmark" or "threshold" field -- do not invent one (e.g. do not say "double the 8% industry threshold" or "10% benchmark"). Report only total_loss_percent, flagged_count, and the other fields actually present in the tool result. If you want to characterize severity, describe it qualitatively ("a high loss rate" or "well above typical levels") without attaching a specific unsourced percentage.
+
 End every analysis with a concise executive summary.
 ${langCfg.systemSuffix}`;
 
