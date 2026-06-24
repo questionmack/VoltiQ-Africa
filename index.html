@@ -1976,7 +1976,7 @@ function generateSyntheticMeterPopulation(loc, n = 60, theftRate = 0.20) {
     }
 
     meters.push({
-      meterId: `MTR-${rnd(1000, 9999)}`,
+      meterId: `MTR-${rnd(100000, 999999)}`,
       currentKwh: Math.round(current * 10) / 10,
       historicalAvgKwh: Math.round(baselineAvg * 10) / 10,
       historicalStdevKwh: Math.round(baselineStdev * 100) / 100,
