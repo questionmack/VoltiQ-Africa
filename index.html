@@ -1175,6 +1175,7 @@
         <button onclick="closePilotTracking()" style="background:none;border:1px solid #1a3a55;color:#4a7a99;font-size:1.1rem;cursor:pointer;padding:4px 10px;">✕</button>
       </div>
       <div style="padding:20px;">
+        <div id="pilotDiscoFilterWrap" style="margin-bottom:12px;"></div>
         <div id="pilotStatsContent"></div>
         <div style="font-family:'Orbitron',monospace;font-size:0.7rem;color:#ffaa00;letter-spacing:1px;margin:16px 0 10px;border-bottom:1px solid #1a3a55;padding-bottom:6px;">PENDING FIELD CONFIRMATION</div>
         <div id="pilotPendingList"></div>
@@ -1549,9 +1550,27 @@ async function logSuspectForTracking(suspect, discoName) {
   }
 }
 
+let pilotDiscoFilter = '';
+
+function onDiscoFilterChange(value) {
+  pilotDiscoFilter = value;
+  refreshPilotTracking();
+}
+
+function buildDiscoFilterDropdown(availableDiscos, currentFilter) {
+  const options = ['<option value="">All DisCos</option>']
+    .concat((availableDiscos || []).map(d =>
+      `<option value="${d}" ${d === currentFilter ? 'selected' : ''}>${d}</option>`
+    ));
+  return `<select onchange="onDiscoFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;">${options.join('')}</select>`;
+}
+
 async function fetchPilotStats() {
   try {
-    const res = await fetch(`${WORKER_BASE_URL}/confirmations/stats`, {
+    const url = pilotDiscoFilter
+      ? `${WORKER_BASE_URL}/confirmations/stats?disco=${encodeURIComponent(pilotDiscoFilter)}`
+      : `${WORKER_BASE_URL}/confirmations/stats`;
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${currentSessionToken}` },
     });
     if (!res.ok) return null;
@@ -1563,7 +1582,9 @@ async function fetchPilotStats() {
 
 async function fetchPendingConfirmations() {
   try {
-    const res = await fetch(`${WORKER_BASE_URL}/confirmations/list?status=pending`, {
+    let url = `${WORKER_BASE_URL}/confirmations/list?status=pending`;
+    if (pilotDiscoFilter) url += `&disco=${encodeURIComponent(pilotDiscoFilter)}`;
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${currentSessionToken}` },
     });
     if (!res.ok) return [];
@@ -1599,6 +1620,7 @@ function closePilotTracking() {
 async function refreshPilotTracking() {
   const statsEl = document.getElementById('pilotStatsContent');
   const listEl = document.getElementById('pilotPendingList');
+  const filterWrapEl = document.getElementById('pilotDiscoFilterWrap');
   statsEl.innerHTML = '<div style="color:#4a7a99;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Loading...</div>';
   listEl.innerHTML = '';
 
@@ -1608,6 +1630,9 @@ async function refreshPilotTracking() {
   if (!stats) {
     statsEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Could not load pilot stats.</div>';
     return;
+  }
+  if (filterWrapEl) {
+    filterWrapEl.innerHTML = buildDiscoFilterDropdown(stats.availableDiscos, pilotDiscoFilter);
   }
 
   const precisionDisplay = stats.realPrecision !== null
