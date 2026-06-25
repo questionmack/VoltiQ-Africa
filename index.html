@@ -1565,20 +1565,27 @@ function onStateFilterChange(value) {
 }
 
 function buildDiscoFilterDropdown(availableDiscos, availableStates, currentDiscoFilter, currentStateFilter) {
-  const discoOptions = ['<option value="">All DisCos</option>']
-    .concat((availableDiscos || []).map(d =>
-      `<option value="${d}" ${d === currentDiscoFilter ? 'selected' : ''}>${d}</option>`
-    ));
-  const stateOptions = ['<option value="">All States</option>']
+  const stateOptions = ['<option value="">-- Select a state --</option>']
     .concat((availableStates || []).map(s =>
       `<option value="${s}" ${s === currentStateFilter ? 'selected' : ''}>${s}</option>`
     ));
-  const discoSelect = `<select onchange="onDiscoFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;margin-right:8px;">${discoOptions.join('')}</select>`;
   const stateSelect = `<select onchange="onStateFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;margin-right:8px;">${stateOptions.join('')}</select>`;
   const refreshBtn = `<button onclick="refreshPilotTracking()" style="background:rgba(57,255,20,0.1);border:1px solid #39ff14;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 14px;cursor:pointer;">\u21bb REFRESH</button>`;
-  return discoSelect + stateSelect + refreshBtn;
+  return stateSelect + refreshBtn;
 }
 
+
+async function fetchPilotStatsUnfiltered() {
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/confirmations/stats`, {
+      headers: { 'Authorization': `Bearer ${currentSessionToken}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
 
 async function fetchPilotStats() {
   try {
@@ -1644,15 +1651,23 @@ async function refreshPilotTracking() {
   statsEl.innerHTML = '<div style="color:#4a7a99;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Loading...</div>';
   listEl.innerHTML = '';
 
+  const unfilteredStats = await fetchPilotStatsUnfiltered();
+  if (filterWrapEl) {
+    filterWrapEl.innerHTML = buildDiscoFilterDropdown(null, unfilteredStats ? unfilteredStats.availableStates : [], null, pilotStateFilter);
+  }
+
+  if (!pilotStateFilter) {
+    statsEl.innerHTML = '<div style="color:#ffaa00;font-family:\'Share Tech Mono\',monospace;font-size:0.75rem;text-align:center;padding:24px;">Select a state above to view pilot tracking results for that state.</div>';
+    listEl.innerHTML = '';
+    return;
+  }
+
   const stats = await fetchPilotStats();
   const pending = await fetchPendingConfirmations();
 
   if (!stats) {
     statsEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Could not load pilot stats.</div>';
     return;
-  }
-  if (filterWrapEl) {
-    filterWrapEl.innerHTML = buildDiscoFilterDropdown(stats.availableDiscos, stats.availableStates, pilotDiscoFilter, pilotStateFilter);
   }
 
   const precisionDisplay = stats.realPrecision !== null
