@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>VoltIQ Field — Confirm Findings</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050a0e;
+    color: #c8e6f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 12px;
+    padding-bottom: 80px;
+  }
+  header {
+    text-align: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #1a3a55;
+    margin-bottom: 16px;
+  }
+  header h1 {
+    color: #00d4ff;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+  }
+  header .state-label {
+    color: #39ff14;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0a1520;
+    border: 1px solid #1a3a55;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+  }
+  .status-bar.offline {
+    background: rgba(255, 170, 0, 0.1);
+    border-color: #ffaa00;
+    color: #ffaa00;
+  }
+  .status-bar.online {
+    background: rgba(57, 255, 20, 0.08);
+    border-color: #39ff14;
+    color: #39ff14;
+  }
+  .queue-badge {
+    background: #ffaa00;
+    color: #050a0e;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .suspect-card {
+    background: #0a1520;
+    border: 1px solid #1a3a55;
+    border-left: 4px solid #ffaa00;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .suspect-card.synced { border-left-color: #4a7a99; opacity: 0.5; }
+  .suspect-card.queued { border-left-color: #ffaa00; }
+  .meter-id {
+    color: #00d4ff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .address {
+    font-size: 0.9rem;
+    color: #c8e6f0;
+    margin-bottom: 8px;
+  }
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: #4a7a99;
+    margin-bottom: 12px;
+  }
+  .loss-amount { color: #ffaa00; font-weight: 600; }
+  .anomaly-type { font-size: 0.75rem; color: #4a7a99; margin-bottom: 12px; }
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .action-btn {
+    padding: 14px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .action-btn:active { transform: scale(0.96); }
+  .btn-theft { background: #39ff14; color: #050a0e; }
+  .btn-false { background: #ff3366; color: #fff; }
+  .btn-fault { background: #ffaa00; color: #050a0e; }
+  .queued-tag {
+    display: inline-block;
+    background: #ffaa00;
+    color: #050a0e;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+  .synced-tag {
+    display: inline-block;
+    background: #4a7a99;
+    color: #050a0e;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+  .empty-state, .error-state, .loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #4a7a99;
+    font-size: 0.9rem;
+  }
+  .error-state { color: #ff3366; }
+  #notesModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,10,14,0.92);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  #notesModal .modal-box {
+    background: #0a1520;
+    border: 1px solid #1a3a55;
+    border-radius: 8px;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+  }
+  #notesModal label {
+    display: block;
+    font-size: 0.8rem;
+    color: #4a7a99;
+    margin-bottom: 6px;
+  }
+  #notesModal input, #notesModal textarea {
+    width: 100%;
+    background: #0f1f30;
+    border: 1px solid #1a3a55;
+    color: #c8e6f0;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+  }
+  #notesModal textarea { resize: vertical; min-height: 60px; }
+  #notesModal .modal-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  #notesModal .modal-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-cancel { background: #1a3a55; color: #c8e6f0; }
+  .btn-submit { background: #39ff14; color: #050a0e; }
+  footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #0a1520;
+    border-top: 1px solid #1a3a55;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 0.68rem;
+    color: #2a5a77;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ VoltIQ FIELD</h1>
+  <div class="state-label" id="stateLabel">Loading...</div>
+</header>
+
+<div class="status-bar" id="statusBar">
+  <span id="statusText">Checking connection...</span>
+  <span class="queue-badge" id="queueBadge" style="display:none;"></span>
+</div>
+
+<div id="content">
+  <div class="loading-state">Loading pending suspects...</div>
+</div>
+
+<div id="notesModal">
+  <div class="modal-box">
+    <div id="modalTitle" style="color:#00d4ff;font-weight:700;margin-bottom:14px;font-size:0.95rem;"></div>
+    <div id="lossFieldWrap">
+      <label>Actual monthly loss found (₦) — optional</label>
+      <input type="number" id="actualLossInput" placeholder="Leave blank to use estimate">
+    </div>
+    <label>Field notes — optional</label>
+    <textarea id="fieldNotesInput" placeholder="e.g. Found bypass wire behind meter box"></textarea>
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeNotesModal()">Cancel</button>
+      <button class="btn-submit" onclick="submitFromModal()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<footer>voltiq.africa · Field Confirmation Tool</footer>
+
+<script>
+const WORKER_BASE_URL = 'https://voltiq-api.momolistic2008.workers.dev';
+const CACHE_KEY = 'voltiq_field_pending_cache';
+const QUEUE_KEY = 'voltiq_field_confirm_queue';
+
+function getFieldToken() {
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('token');
+  if (fromUrl) {
+    localStorage.setItem('voltiq_field_token', fromUrl);
+    return fromUrl;
+  }
+  return localStorage.getItem('voltiq_field_token');
+}
+
+const fieldToken = getFieldToken();
+let pendingNow = [];
+let pendingState = null;
+let activeSuspect = null;
+let activeStatus = null;
+
+function setStatusBar(online, queueCount) {
+  const bar = document.getElementById('statusBar');
+  const text = document.getElementById('statusText');
+  const badge = document.getElementById('queueBadge');
+  bar.className = 'status-bar ' + (online ? 'online' : 'offline');
+  text.textContent = online ? '● Online — synced live' : '● Offline — confirmations will queue';
+  if (queueCount > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = queueCount + ' queued';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function getQueue() {
+  try {
+    return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveQueue(queue) {
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+}
+
+function getCachedPending() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCachedPending(records) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify(records));
+}
+
+async function fetchPending() {
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/field/pending`, {
+      headers: { 'Authorization': `Bearer ${fieldToken}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function verifyToken() {
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/field/verify`, {
+      headers: { 'Authorization': `Bearer ${fieldToken}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function syncQueue() {
+  const queue = getQueue();
+  if (queue.length === 0) return;
+
+  const stillQueued = [];
+  for (const item of queue) {
+    try {
+      const res = await fetch(`${WORKER_BASE_URL}/field/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fieldToken}` },
+        body: JSON.stringify(item),
+      });
+      if (!res.ok) {
+        stillQueued.push(item);
+      }
+    } catch (e) {
+      stillQueued.push(item);
+    }
+  }
+  saveQueue(stillQueued);
+}
+
+function renderSuspects(records, queue) {
+  const content = document.getElementById('content');
+  if (!records || records.length === 0) {
+    content.innerHTML = '<div class="empty-state">✅ No pending suspects for your assigned state right now.</div>';
+    return;
+  }
+
+  const queuedIds = new Set(queue.map(q => q.suspectId));
+
+  content.innerHTML = records.map(r => {
+    const isQueued = queuedIds.has(r.suspectId);
+    return `
+      <div class="suspect-card ${isQueued ? 'queued' : ''}" id="card-${r.suspectId}">
+        <div class="meter-id">${r.meterId}</div>
+        <div class="address">${r.address}, ${r.area}</div>
+        <div class="meta-row">
+          <span>${r.anomalyType || ''}${r.zScore ? ' · z=' + r.zScore : ''}</span>
+          <span class="loss-amount">₦${(r.estimatedMonthlyLossNgn || 0).toLocaleString()}/mo</span>
+        </div>
+        <div class="action-buttons">
+          <button class="action-btn btn-theft" onclick="openNotesModal('${r.suspectId}', 'confirmed_theft')">✓ THEFT</button>
+          <button class="action-btn btn-false" onclick="openNotesModal('${r.suspectId}', 'false_positive')">✕ FALSE</button>
+          <button class="action-btn btn-fault" onclick="openNotesModal('${r.suspectId}', 'meter_fault')">⚠ FAULT</button>
+        </div>
+        ${isQueued ? '<div class="queued-tag">⏳ Queued — will sync when online</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function openNotesModal(suspectId, status) {
+  activeSuspect = suspectId;
+  activeStatus = status;
+  const titles = { confirmed_theft: 'Confirm Theft', false_positive: 'Mark False Positive', meter_fault: 'Mark Meter Fault' };
+  document.getElementById('modalTitle').textContent = titles[status] + ' — ' + suspectId;
+  document.getElementById('lossFieldWrap').style.display = status === 'confirmed_theft' ? 'block' : 'none';
+  document.getElementById('actualLossInput').value = '';
+  document.getElementById('fieldNotesInput').value = '';
+  document.getElementById('notesModal').style.display = 'flex';
+}
+
+function closeNotesModal() {
+  document.getElementById('notesModal').style.display = 'none';
+  activeSuspect = null;
+  activeStatus = null;
+}
+
+async function submitFromModal() {
+  if (!activeSuspect || !activeStatus) return;
+
+  const actualLossInput = document.getElementById('actualLossInput').value;
+  const fieldNotes = document.getElementById('fieldNotesInput').value;
+  const actualLossNgn = actualLossInput && !isNaN(parseFloat(actualLossInput)) ? parseFloat(actualLossInput) : null;
+
+  const payload = { suspectId: activeSuspect, status: activeStatus, fieldNotes, actualLossNgn };
+
+  closeNotesModal();
+
+  if (navigator.onLine) {
+    try {
+      const res = await fetch(`${WORKER_BASE_URL}/field/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fieldToken}` },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        markSynced(payload.suspectId);
+        return;
+      }
+    } catch (e) {
+    }
+  }
+
+  const queue = getQueue();
+  queue.push(payload);
+  saveQueue(queue);
+  refreshUI();
+}
+
+function markSynced(suspectId) {
+  const card = document.getElementById('card-' + suspectId);
+  if (card) {
+    card.classList.add('synced');
+    card.innerHTML = `<div class="meter-id">${suspectId}</div><div class="synced-tag">✅ Synced successfully</div>`;
+  }
+}
+
+async function refreshUI() {
+  const queue = getQueue();
+  setStatusBar(navigator.onLine, queue.length);
+
+  if (navigator.onLine) {
+    await syncQueue();
+    const result = await fetchPending();
+    if (result && result.records) {
+      pendingNow = result.records;
+      saveCachedPending(result.records);
+      renderSuspects(pendingNow, getQueue());
+      return;
+    }
+  }
+
+  pendingNow = getCachedPending();
+  renderSuspects(pendingNow, getQueue());
+}
+
+async function init() {
+  if (!fieldToken) {
+    document.getElementById('content').innerHTML = '<div class="error-state">No field access link found. Please use the link sent to you by your supervisor.</div>';
+    document.getElementById('stateLabel').textContent = 'No access';
+    return;
+  }
+
+  const verify = await verifyToken();
+  if (!verify || !verify.valid) {
+    const cached = getCachedPending();
+    if (cached.length > 0) {
+      document.getElementById('stateLabel').textContent = '(offline — showing cached data)';
+      renderSuspects(cached, getQueue());
+      setStatusBar(false, getQueue().length);
+      return;
+    }
+    document.getElementById('content').innerHTML = '<div class="error-state">This field access link is invalid or has expired. Please request a new link from your supervisor.</div>';
+    document.getElementById('stateLabel').textContent = 'Access denied';
+    return;
+  }
+
+  pendingState = verify.state;
+  document.getElementById('stateLabel').textContent = pendingState;
+  await refreshUI();
+}
+
+window.addEventListener('online', refreshUI);
+window.addEventListener('offline', () => setStatusBar(false, getQueue().length));
+
+init();
+</script>
+</body>
+</html>
