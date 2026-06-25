@@ -1529,7 +1529,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-async function logSuspectForTracking(suspect, discoName) {
+async function logSuspectForTracking(suspect, discoName, state) {
   try {
     await fetch(`${WORKER_BASE_URL}/confirmations/create`, {
       method: 'POST',
@@ -1538,6 +1538,7 @@ async function logSuspectForTracking(suspect, discoName) {
         meterId: suspect.meter_id,
         address: suspect.address,
         area: suspect.area,
+        state: state,
         discoName: discoName,
         anomalyType: suspect.anomaly_type,
         zScore: suspect.z_score,
@@ -1551,25 +1552,41 @@ async function logSuspectForTracking(suspect, discoName) {
 }
 
 let pilotDiscoFilter = '';
+let pilotStateFilter = '';
 
 function onDiscoFilterChange(value) {
   pilotDiscoFilter = value;
   refreshPilotTracking();
 }
 
-function buildDiscoFilterDropdown(availableDiscos, currentFilter) {
-  const options = ['<option value="">All DisCos</option>']
-    .concat((availableDiscos || []).map(d =>
-      `<option value="${d}" ${d === currentFilter ? 'selected' : ''}>${d}</option>`
-    ));
-  return `<select onchange="onDiscoFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;">${options.join('')}</select>`;
+function onStateFilterChange(value) {
+  pilotStateFilter = value;
+  refreshPilotTracking();
 }
+
+function buildDiscoFilterDropdown(availableDiscos, availableStates, currentDiscoFilter, currentStateFilter) {
+  const discoOptions = ['<option value="">All DisCos</option>']
+    .concat((availableDiscos || []).map(d =>
+      `<option value="${d}" ${d === currentDiscoFilter ? 'selected' : ''}>${d}</option>`
+    ));
+  const stateOptions = ['<option value="">All States</option>']
+    .concat((availableStates || []).map(s =>
+      `<option value="${s}" ${s === currentStateFilter ? 'selected' : ''}>${s}</option>`
+    ));
+  const discoSelect = `<select onchange="onDiscoFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;margin-right:8px;">${discoOptions.join('')}</select>`;
+  const stateSelect = `<select onchange="onStateFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;margin-right:8px;">${stateOptions.join('')}</select>`;
+  const refreshBtn = `<button onclick="refreshPilotTracking()" style="background:rgba(57,255,20,0.1);border:1px solid #39ff14;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 14px;cursor:pointer;">\u21bb REFRESH</button>`;
+  return discoSelect + stateSelect + refreshBtn;
+}
+
 
 async function fetchPilotStats() {
   try {
-    const url = pilotDiscoFilter
-      ? `${WORKER_BASE_URL}/confirmations/stats?disco=${encodeURIComponent(pilotDiscoFilter)}`
-      : `${WORKER_BASE_URL}/confirmations/stats`;
+    const params = new URLSearchParams();
+    if (pilotDiscoFilter) params.set('disco', pilotDiscoFilter);
+    if (pilotStateFilter) params.set('state', pilotStateFilter);
+    const qs = params.toString();
+    const url = `${WORKER_BASE_URL}/confirmations/stats${qs ? '?' + qs : ''}`;
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${currentSessionToken}` },
     });
@@ -1582,8 +1599,11 @@ async function fetchPilotStats() {
 
 async function fetchPendingConfirmations() {
   try {
-    let url = `${WORKER_BASE_URL}/confirmations/list?status=pending`;
-    if (pilotDiscoFilter) url += `&disco=${encodeURIComponent(pilotDiscoFilter)}`;
+    const params = new URLSearchParams();
+    params.set('status', 'pending');
+    if (pilotDiscoFilter) params.set('disco', pilotDiscoFilter);
+    if (pilotStateFilter) params.set('state', pilotStateFilter);
+    const url = `${WORKER_BASE_URL}/confirmations/list?${params.toString()}`;
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${currentSessionToken}` },
     });
@@ -1632,7 +1652,7 @@ async function refreshPilotTracking() {
     return;
   }
   if (filterWrapEl) {
-    filterWrapEl.innerHTML = buildDiscoFilterDropdown(stats.availableDiscos, pilotDiscoFilter);
+    filterWrapEl.innerHTML = buildDiscoFilterDropdown(stats.availableDiscos, stats.availableStates, pilotDiscoFilter, pilotStateFilter);
   }
 
   const precisionDisplay = stats.realPrecision !== null
@@ -2393,7 +2413,7 @@ function executeTool(name, args) {
       estimated_monthly_revenue_loss_ngn: analysis.totalEstimatedLossNgn,
       _pilotTrackingFired: (() => {
         if (typeof logSuspectForTracking === 'function' && suspects.length > 0) {
-          suspects.forEach(s => logSuspectForTracking(s, loc.disco));
+          suspects.forEach(s => logSuspectForTracking(s, loc.disco, loc.state));
         }
         return true;
       })(),
