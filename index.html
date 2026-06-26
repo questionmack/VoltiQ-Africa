@@ -1045,7 +1045,7 @@
         </div>
         <div style="background:#0a1520;padding:10px 14px;text-align:center;">
           <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:2px;margin-bottom:4px;">AVG NATIONAL LOSS</div>
-          <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#ffaa00;">39.61%</div>
+          <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#ffaa00;">34.90%</div>
         </div>
         <div style="background:#0a1520;padding:10px 14px;text-align:center;">
           <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:2px;margin-bottom:4px;">REVENUE LOST (2YRS)</div>
@@ -4472,9 +4472,9 @@ function analyzeUploadedFile() {
   if (!uploadedFileData || Object.keys(parsedSheets).length === 0) return;
   closeUpload();
   const TARIFF = 113;
-  const LOSSES = {'AEDC':39.61,'ABUJA':39.61,'KAEDCO':68.57,'KADUNA':68.57,'YEDC':58.20,'YOLA':58.20,'JEDC':55.40,'JOS':55.40,'EEDC':48.30,'ENUGU':48.30,'IBEDC':45.10,'IBADAN':45.10,'BEDC':43.80,'BENIN':43.80,'PHEDC':38.50,'PH':38.50,'EKEDC':32.10,'EKO':32.10,'IKEDC':28.40,'IKEJA':28.40,'KEDCO':18.50,'KANO':18.50};
+  const LOSSES = {'AEDC':30.99,'ABUJA':30.99,'KAEDCO':69.45,'KADUNA':69.45,'YEDC':52.77,'YOLA':52.77,'JEDC':64.84,'JOS':64.84,'EEDC':38.62,'ENUGU':38.62,'IBEDC':42.51,'IBADAN':42.51,'BEDC':44.50,'BENIN':44.50,'PHEDC':33.01,'PH':33.01,'EKEDC':14.20,'EKO':14.20,'IKEDC':16.33,'IKEJA':16.33,'KEDCO':44.12,'KANO':44.12};
   const disco = (sessionLocation && sessionLocation.disco) || 'AEDC';
-  const lossRate = LOSSES[disco.toUpperCase()] || 39.61;
+  const lossRate = LOSSES[disco.toUpperCase()] || 34.90;
   let ctx = '', suspects = [];
 
   Object.entries(parsedSheets).forEach(([sn, rows]) => {
