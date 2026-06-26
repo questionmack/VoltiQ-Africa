@@ -1739,10 +1739,11 @@ async function refreshPilotTracking() {
 
   const precisionDisplay = stats.realPrecision !== null
     ? (stats.realPrecision * 100).toFixed(1) + '%'
-    : '— (no field checks yet)';
+    : 'N/A';
   const precisionColor = stats.realPrecision !== null
     ? (stats.realPrecision >= 0.5 ? '#39ff14' : '#ffaa00')
     : '#4a7a99';
+  const precisionFontSize = stats.realPrecision !== null ? '1.3rem' : '0.95rem';
 
   statsEl.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:#1a3a55;margin-bottom:12px;">
@@ -1756,7 +1757,7 @@ async function refreshPilotTracking() {
       </div>
       <div style="background:#0f1f30;padding:12px;text-align:center;">
         <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;letter-spacing:1px;">REAL PRECISION</div>
-        <div style="font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:700;color:${precisionColor};">${precisionDisplay}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:${precisionFontSize};font-weight:700;color:${precisionColor};">${precisionDisplay}</div>
       </div>
     </div>
     <div style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#4a7a99;margin-bottom:16px;line-height:1.6;">
