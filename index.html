@@ -2938,72 +2938,73 @@ const NATIONAL_GRID_ZONES = [
   {
     zone: 'North-West', color: '#185FA5',
     states: [
-      { name:'Kaduna',  city:'Kaduna',       disco:'KAEDCO',     loss:69.45 },
-      { name:'Kebbi',   city:'Birnin Kebbi', disco:'KAEDCO',     loss:69.45 },
-      { name:'Sokoto',  city:'Sokoto',       disco:'KAEDCO',     loss:69.45 },
-      { name:'Zamfara', city:'Gusau',        disco:'KAEDCO',     loss:69.45 },
-      { name:'Kano',    city:'Kano',         disco:'KEDCO',      loss:44.12 },
-      { name:'Katsina', city:'Katsina',      disco:'KEDCO',      loss:44.12 },
-      { name:'Jigawa',  city:'Dutse',        disco:'KEDCO',      loss:44.12 },
+      { name:'Kaduna',  city:'Kaduna',       disco:'KAEDCO',     loss:69.45, meterRate:34.42 },
+      { name:'Kebbi',   city:'Birnin Kebbi', disco:'KAEDCO',     loss:69.45, meterRate:34.42 },
+      { name:'Sokoto',  city:'Sokoto',       disco:'KAEDCO',     loss:69.45, meterRate:34.42 },
+      { name:'Zamfara', city:'Gusau',        disco:'KAEDCO',     loss:69.45, meterRate:34.42 },
+      { name:'Kano',    city:'Kano',         disco:'KEDCO',      loss:44.12, meterRate:35.35 },
+      { name:'Katsina', city:'Katsina',      disco:'KEDCO',      loss:44.12, meterRate:35.35 },
+      { name:'Jigawa',  city:'Dutse',        disco:'KEDCO',      loss:44.12, meterRate:35.35 },
     ]
   },
   {
     zone: 'North-East', color: '#534AB7',
     states: [
-      { name:'Adamawa', city:'Yola',      disco:'Yola DiSCo', loss:52.77 },
-      { name:'Borno',   city:'Maiduguri', disco:'Yola DiSCo', loss:52.77 },
-      { name:'Taraba',  city:'Jalingo',   disco:'Yola DiSCo', loss:52.77 },
-      { name:'Yobe',    city:'Damaturu',  disco:'Yola DiSCo', loss:52.77 },
-      { name:'Gombe',   city:'Gombe',     disco:'Yola DiSCo', loss:52.77 },
-      { name:'Bauchi',  city:'Bauchi',    disco:'Yola DiSCo', loss:52.77 },
+      { name:'Adamawa', city:'Yola',      disco:'Yola DiSCo', loss:52.77, meterRate:30.80 },
+      { name:'Borno',   city:'Maiduguri', disco:'Yola DiSCo', loss:52.77, meterRate:30.80 },
+      { name:'Taraba',  city:'Jalingo',   disco:'Yola DiSCo', loss:52.77, meterRate:30.80 },
+      { name:'Yobe',    city:'Damaturu',  disco:'Yola DiSCo', loss:52.77, meterRate:30.80 },
+      { name:'Gombe',   city:'Gombe',     disco:'Yola DiSCo', loss:52.77, meterRate:30.80 },
+      { name:'Bauchi',  city:'Bauchi',    disco:'Yola DiSCo', loss:52.77, meterRate:30.80 },
     ]
   },
   {
     zone: 'North-Central', color: '#0F6E56',
     states: [
-      { name:'FCT',       city:'Abuja',  disco:'AEDC',  loss:30.99 },
-      { name:'Niger',     city:'Minna',  disco:'AEDC',  loss:30.99 },
-      { name:'Kogi',      city:'Lokoja', disco:'AEDC',  loss:30.99 },
-      { name:'Nassarawa', city:'Lafia',  disco:'AEDC',  loss:30.99 },
-      { name:'Kwara',     city:'Ilorin', disco:'IBEDC', loss:42.51 },
-      { name:'Benue',     city:'Makurdi',disco:'JEDC',  loss:64.84 },
-      { name:'Plateau',   city:'Jos',    disco:'JEDC',  loss:64.84 },
+      { name:'FCT',       city:'Abuja',  disco:'AEDC',  loss:30.99, meterRate:77.81 },
+      { name:'Niger',     city:'Minna',  disco:'AEDC',  loss:30.99, meterRate:77.81 },
+      { name:'Kogi',      city:'Lokoja', disco:'AEDC',  loss:30.99, meterRate:77.81 },
+      { name:'Nassarawa', city:'Lafia',  disco:'AEDC',  loss:30.99, meterRate:77.81 },
+      { name:'Kwara',     city:'Ilorin', disco:'IBEDC', loss:42.51, meterRate:51.85 },
+      { name:'Benue',     city:'Makurdi',disco:'JEDC',  loss:64.84, meterRate:31.43 },
+      { name:'Plateau',   city:'Jos',    disco:'JEDC',  loss:64.84, meterRate:31.43 },
     ]
   },
   {
     zone: 'South-West', color: '#854F0B',
     states: [
-      { name:'Lagos (N)', city:'Ikeja',       disco:'IE Energy',      loss:16.33 },
-      { name:'Lagos (S)', city:'Lagos Island', disco:'Excel Dist',    loss:14.20 },
-      { name:'Oyo',       city:'Ibadan',      disco:'IBEDC',          loss:42.51 },
-      { name:'Ogun',      city:'Abeokuta',    disco:'IBEDC',          loss:42.51 },
-      { name:'Osun',      city:'Osogbo',      disco:'IBEDC',          loss:42.51 },
-      { name:'Ondo',      city:'Akure',       disco:'BEDC',           loss:44.50 },
-      { name:'Ekiti',     city:'Ado Ekiti',   disco:'BEDC',           loss:44.50 },
+      { name:'Lagos (N)', city:'Ikeja',       disco:'IE Energy',      loss:16.33, meterRate:86.40 },
+      { name:'Lagos (S)', city:'Lagos Island', disco:'Excel Dist',    loss:14.20, meterRate:85.87 },
+      { name:'Oyo',       city:'Ibadan',      disco:'IBEDC',          loss:42.51, meterRate:51.85 },
+      { name:'Ogun',      city:'Abeokuta',    disco:'IBEDC',          loss:42.51, meterRate:51.85 },
+      { name:'Osun',      city:'Osogbo',      disco:'IBEDC',          loss:42.51, meterRate:51.85 },
+      { name:'Ondo',      city:'Akure',       disco:'BEDC',           loss:44.50, meterRate:53.45 },
+      { name:'Ekiti',     city:'Ado Ekiti',   disco:'BEDC',           loss:44.50, meterRate:53.45 },
     ]
   },
   {
     zone: 'South-South', color: '#993556',
     states: [
-      { name:'Rivers',     city:'Port Harcourt', disco:'PHEDC', loss:33.01 },
-      { name:'Bayelsa',    city:'Yenagoa',       disco:'PHEDC', loss:33.01 },
-      { name:'Cross River',city:'Calabar',       disco:'PHEDC', loss:33.01 },
-      { name:'Akwa Ibom',  city:'Uyo',           disco:'PHEDC', loss:33.01 },
-      { name:'Delta',      city:'Asaba',         disco:'BEDC',  loss:44.50 },
-      { name:'Edo',        city:'Benin City',    disco:'BEDC',  loss:44.50 },
+      { name:'Rivers',     city:'Port Harcourt', disco:'PHEDC', loss:33.01, meterRate:64.13 },
+      { name:'Bayelsa',    city:'Yenagoa',       disco:'PHEDC', loss:33.01, meterRate:64.13 },
+      { name:'Cross River',city:'Calabar',       disco:'PHEDC', loss:33.01, meterRate:64.13 },
+      { name:'Akwa Ibom',  city:'Uyo',           disco:'PHEDC', loss:33.01, meterRate:64.13 },
+      { name:'Delta',      city:'Asaba',         disco:'BEDC',  loss:44.50, meterRate:53.45 },
+      { name:'Edo',        city:'Benin City',    disco:'BEDC',  loss:44.50, meterRate:53.45 },
     ]
   },
   {
     zone: 'South-East', color: '#3B6D11',
     states: [
-      { name:'Enugu',   city:'Enugu',     disco:'EEDC',      loss:38.62 },
-      { name:'Anambra', city:'Awka',      disco:'EEDC',      loss:38.62 },
-      { name:'Imo',     city:'Owerri',    disco:'EEDC',      loss:38.62 },
-      { name:'Abia',    city:'Umuahia',   disco:'EEDC',      loss:38.62 },
-      { name:'Ebonyi',  city:'Abakaliki', disco:'EEDC',      loss:38.62 },
+      { name:'Enugu',   city:'Enugu',     disco:'EEDC',      loss:38.62, meterRate:51.60 },
+      { name:'Anambra', city:'Awka',      disco:'EEDC',      loss:38.62, meterRate:51.60 },
+      { name:'Imo',     city:'Owerri',    disco:'EEDC',      loss:38.62, meterRate:51.60 },
+      { name:'Abia',    city:'Umuahia',   disco:'EEDC',      loss:38.62, meterRate:51.60 },
+      { name:'Ebonyi',  city:'Abakaliki', disco:'EEDC',      loss:38.62, meterRate:51.60 },
     ]
   },
 ];
+
 
 function buildNationalGridContent() {
   const container = document.getElementById('nationalGridContent');
@@ -3031,7 +3032,8 @@ function buildNationalGridContent() {
               onmouseout="this.style.background='rgba(${hexToRgb(lc)},0.07)';this.style.borderColor='rgba(${hexToRgb(lc)},0.3)'">
               <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;font-weight:700;color:${lc};">${s.name}</div>
               <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:#4a7a99;margin-top:2px;">${s.disco}</div>
-              <div style="font-family:'Orbitron',monospace;font-size:0.6rem;font-weight:700;color:${lc};margin-top:3px;">${s.loss}%</div>
+              <div style="font-family:'Orbitron',monospace;font-size:0.6rem;font-weight:700;color:${lc};margin-top:3px;">${s.loss}% loss</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:0.5rem;color:#4a7a99;margin-top:1px;">${s.meterRate}% metered</div>
             </button>
           `;
         }).join('')}
