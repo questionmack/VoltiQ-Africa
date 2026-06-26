@@ -1570,9 +1570,76 @@ function buildDiscoFilterDropdown(availableDiscos, availableStates, currentDisco
       `<option value="${s}" ${s === currentStateFilter ? 'selected' : ''}>${s}</option>`
     ));
   const stateSelect = `<select onchange="onStateFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;margin-right:8px;">${stateOptions.join('')}</select>`;
-  const refreshBtn = `<button onclick="refreshPilotTracking()" style="background:rgba(57,255,20,0.1);border:1px solid #39ff14;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 14px;cursor:pointer;">\u21bb REFRESH</button>`;
-  return stateSelect + refreshBtn;
+  const refreshBtn = `<button onclick="refreshPilotTracking()" style="background:rgba(57,255,20,0.1);border:1px solid #39ff14;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 14px;cursor:pointer;margin-right:8px;">\u21bb REFRESH</button>`;
+  const linkBtn = currentStateFilter
+    ? `<button onclick="generateFieldLink()" style="background:rgba(0,212,255,0.1);border:1px solid #00d4ff;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 14px;cursor:pointer;">\ud83d\udd17 GENERATE FIELD LINK</button>`
+    : '';
+  return stateSelect + refreshBtn + linkBtn + '<div id="fieldLinkResult" style="margin-top:10px;"></div>';
 }
+
+async function generateFieldLink() {
+  if (!pilotStateFilter) {
+    alert('Select a state first.');
+    return;
+  }
+  const resultEl = document.getElementById('fieldLinkResult');
+  resultEl.innerHTML = '<div style="color:#4a7a99;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Generating...</div>';
+
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/field/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+      body: JSON.stringify({ state: pilotStateFilter, label: `${pilotStateFilter} field access` }),
+    });
+    if (!res.ok) {
+      resultEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Could not generate link.</div>';
+      return;
+    }
+    const data = await res.json();
+    const link = `https://voltiq.africa/field.html?token=${data.token}`;
+    resultEl.innerHTML = `
+      <div style="background:#0f1f30;border:1px solid #00d4ff;padding:12px;border-radius:6px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#4a7a99;margin-bottom:6px;">Field link for ${pilotStateFilter} (valid 30 days) — copy and send to your field team:</div>
+        <input type="text" readonly value="${link}" onclick="this.select()" style="width:100%;background:#050a0e;border:1px solid #1a3a55;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:8px;border-radius:4px;">
+      </div>
+    `;
+  } catch (e) {
+    resultEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Network error generating link.</div>';
+  }
+}
+
+
+async function generateFieldLink() {
+  if (!pilotStateFilter) {
+    alert('Select a state first.');
+    return;
+  }
+  const resultEl = document.getElementById('fieldLinkResult');
+  resultEl.innerHTML = '<div style="color:#4a7a99;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Generating...</div>';
+
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/field/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSessionToken}` },
+      body: JSON.stringify({ state: pilotStateFilter, label: `${pilotStateFilter} field access` }),
+    });
+    if (!res.ok) {
+      resultEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Could not generate link.</div>';
+      return;
+    }
+    const data = await res.json();
+    const link = `https://voltiq.africa/field.html?token=${data.token}`;
+    resultEl.innerHTML = `
+      <div style="background:#0f1f30;border:1px solid #00d4ff;padding:12px;border-radius:6px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#4a7a99;margin-bottom:6px;">Field link for ${pilotStateFilter} (valid 30 days) — copy and send to your field team:</div>
+        <input type="text" readonly value="${link}" onclick="this.select()" style="width:100%;background:#050a0e;border:1px solid #1a3a55;color:#39ff14;font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:8px;border-radius:4px;">
+      </div>
+    `;
+  } catch (e) {
+    resultEl.innerHTML = '<div style="color:#ff3366;font-family:\'Share Tech Mono\',monospace;font-size:0.7rem;">Network error generating link.</div>';
+  }
+}
+
 
 
 async function fetchPilotStatsUnfiltered() {
