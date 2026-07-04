@@ -4511,21 +4511,44 @@ function analyzeUploadedFile() {
       ctx += `Type breakdown: ${JSON.stringify(types)}\nFinance sources: ${JSON.stringify(fins)}\nSample projects:\n`;
       rows.slice(0,8).forEach((r,i) => { ctx += `  ${i+1}. ${r[cm.project]||''} | ${r[cm.station]||''} | ${r[cm.type]||''}\n`; });
     } else if (cm.consumption || cm.amount || cm.account) {
-      const kwhs = rows.map(r => parseFloat((r[cm.consumption]||r[cm.amount]||0)+''.replace(/[^0-9.]/g,''))||0);
+      // ── Parser hygiene: exclude summary/aggregate rows (TOTAL, SUM, etc.) ──
+      const isSummaryRow = r => Object.values(r).some(v => /^(grand\s*)?(total|sum|subtotal)s?$/i.test(String(v).trim()));
+      const dataRows = rows.filter(r => !isSummaryRow(r));
+      const excluded = rows.length - dataRows.length;
+      if (excluded > 0) ctx += `(${excluded} summary row(s) excluded from analysis)\n`;
+
+      // ── Numeric cleaner (fixes precedence bug: replace must run on the value) ──
+      const num = v => parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, '')) || 0;
+
+      // ── Prepaid vending detection: purchase receipts, not consumption data ──
+      const colStr = cols.join(' ').toLowerCase();
+      const isPrepaidVending = /token/.test(colStr) && /(order|payment)\s*amount/.test(colStr);
+
+      const kwhs = dataRows.map(r => num(r[cm.consumption] || r[cm.amount] || 0));
       const total = kwhs.reduce((a,b)=>a+b,0);
       const mean  = total/kwhs.length || 0;
-      const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
-      const zeros = kwhs.filter(v=>v===0).length;
-      ctx += `Records: ${rows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nEst. monthly loss: ₦${(total*(lossRate/100)*TARIFF).toLocaleString()}\n`;
-      rows.forEach((r,i) => {
-        const kwh = kwhs[i];
-        if (kwh === 0 || (std > 0 && kwh < mean - 2*std && kwh > 0)) {
-          suspects.push({ rank: suspects.length+1, account: r[cm.account]||'ROW-'+(i+2), address: r[cm.address]||'On file', name: r[cm.name]||'Customer', kwh, expected: Math.round(mean), loss: Math.round((mean-kwh)*TARIFF), pattern: kwh===0?'Zero consumption — bypass':'Low consumption — tamper', conf: kwh===0?0.91:0.78 });
-        }
-      });
-      ctx += `\nSuspects flagged: ${suspects.length}\n`;
-      suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | ${s.address} | ${s.pattern} | ₦${s.loss.toLocaleString()}/mo | ${(s.conf*100).toFixed(0)}% confidence\n`; });
-      ctx += `\nSample data:\n`; rows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(r)}\n`; });
+
+      if (isPrepaidVending) {
+        const amounts = dataRows.map(r => num(r['Order Amount (\u20a6)'] ?? r['Payment Amount (\u20a6)'] ?? r[cm.amount]));
+        const totalNgn = amounts.reduce((a,b)=>a+b,0);
+        ctx += `DATA TYPE: PREPAID VENDING — customer purchase receipts, NOT consumption/feeder data\n`;
+        ctx += `Vends: ${dataRows.length} | Energy purchased: ${total.toFixed(1)} kWh | Total vended: \u20a6${totalNgn.toLocaleString()}\n`;
+        ctx += `Blended rate: \u20a6${total>0?(totalNgn/total).toFixed(2):'0'}/kWh\n`;
+        ctx += `IMPORTANT: Vended kWh is energy the customer PAID for — it is NOT revenue loss. Do not present any figure here as loss or theft. Feeder-level theft analysis is NOT applicable to this file type. Any anomaly is a customer-side lead only; the maximum recommendation is field verification.\n`;
+      } else {
+        const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
+        const zeros = kwhs.filter(v=>v===0).length;
+        ctx += `Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nImplied loss share at ${lossRate}% ATC&C: \u20a6${(total*(lossRate/100)*TARIFF).toLocaleString()} (estimate, not measured)\n`;
+        dataRows.forEach((r,i) => {
+          const kwh = kwhs[i];
+          if (kwh === 0 || (std > 0 && kwh < mean - 2*std && kwh > 0)) {
+            suspects.push({ rank: suspects.length+1, account: r[cm.account]||'ROW-'+(i+2), address: r[cm.address]||'On file', name: r[cm.name]||'Customer', kwh, expected: Math.round(mean), loss: Math.round((mean-kwh)*TARIFF), pattern: kwh===0?'Zero consumption — bypass indicator':'Statistical low — tamper indicator', severity: kwh===0?'HIGH':'MEDIUM' });
+          }
+        });
+        ctx += `\nPattern indicators flagged: ${suspects.length} (field verification required before any action)\n`;
+        suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | ${s.address} | ${s.pattern} | est. \u20a6${s.loss.toLocaleString()}/mo | severity: ${s.severity}\n`; });
+      }
+      ctx += `\nSample data:\n`; dataRows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(r)}\n`; });
     } else {
       ctx += `Sample rows:\n`; rows.slice(0,6).forEach(r=>{ ctx += `  ${JSON.stringify(r)}\n`; });
     }
