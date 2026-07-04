@@ -2431,6 +2431,26 @@ function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 // ── Tool implementations ──────────────────────────────────────────────────────
 function executeTool(name, args) {
+  // ── REAL-MODE GATE ────────────────────────────────────────────────────────
+  // When a user file is loaded, simulated tools are BLOCKED at the dispatch
+  // layer. Enforcement here, not in the prompt — prompts can be ignored.
+  const SIM_TOOLS = ["detect_theft_anomalies", "get_transformer_status",
+                     "optimize_voltage", "fetch_meter_data"];
+  const realModeActive = !!uploadedFileData ||
+        (typeof parsedSheets === 'object' && Object.keys(parsedSheets || {}).length > 0);
+  if (realModeActive && SIM_TOOLS.includes(name)) {
+    return {
+      error: "SIMULATED_TOOL_BLOCKED",
+      real_mode: true,
+      blocked_tool: name,
+      message: "A real data file is loaded, so this simulated tool is disabled. " +
+        "Analyze ONLY the uploaded file contents. Do NOT invent meters, feeders, " +
+        "transformers, addresses, names, telemetry, or confidence scores. " +
+        "Customer-side data may only produce 'field verification recommended' " +
+        "leads — never disconnection or prosecution recommendations."
+    };
+  }
+  // ──────────────────────────────────────────────────────────────────────────
   const now = new Date().toISOString();
   const loc = detectNigerianLocation(args);
   const TARIFF = 113; // ₦/kWh average Nigerian tariff
