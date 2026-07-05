@@ -3557,6 +3557,8 @@ CRITICAL RULES — FOLLOW STRICTLY:
 8. When the user says "run voltage optimization" — immediately call optimize_voltage with zone_id based on current location context.
 
 9. NEVER cite a comparison number (industry benchmark, threshold, average, etc.) unless it actually appears in the tool's JSON output. The detect_theft_anomalies, optimize_voltage, and get_transformer_status tools do NOT return an "industry benchmark" or "threshold" field -- do not invent one (e.g. do not say "double the 8% industry threshold" or "10% benchmark"). Report only total_loss_percent, flagged_count, and the other fields actually present in the tool result. If you want to characterize severity, describe it qualitatively ("a high loss rate" or "well above typical levels") without attaching a specific unsourced percentage.
+10. REAL-MODE CONDUCT: When a user-uploaded data file is loaded, the simulated tools (detect_theft_anomalies, get_transformer_status, optimize_voltage, fetch_meter_data) are DISABLED. Do not call them, and do not announce, promise, or mention fetching transformer status, meter data, voltage optimization, or feeder-level anomalies. Analyze ONLY the uploaded file contents and say so plainly.
+11. VAT AWARENESS: Nigerian prepaid vend amounts typically include 7.5% VAT on the energy charge. Before flagging a blended vend rate (naira per kWh) as anomalous against a declared tariff, first compute tariff x 1.075. If the blended rate is within about 1% of that figure, report it as "consistent with the declared tariff plus 7.5% VAT" and do NOT escalate it as an anomaly or leakage.
 
 End every analysis with a concise executive summary.
 ${langCfg.systemSuffix}`;
@@ -4494,7 +4496,7 @@ function analyzeUploadedFile() {
   if (!uploadedFileData || Object.keys(parsedSheets).length === 0) return;
   closeUpload();
   const TARIFF = 113;
-  const LOSSES = {'AEDC':30.99,'ABUJA':30.99,'KAEDCO':69.45,'KADUNA':69.45,'YEDC':52.77,'YOLA':52.77,'JEDC':64.84,'JOS':64.84,'EEDC':38.62,'ENUGU':38.62,'IBEDC':42.51,'IBADAN':42.51,'BEDC':44.50,'BENIN':44.50,'PHEDC':33.01,'PH':33.01,'EKEDC':14.20,'EKO':14.20,'IKEDC':16.33,'IKEJA':16.33,'KEDCO':44.12,'KANO':44.12};
+  const LOSSES = {'AEDC':30.99,'ABUJA':30.99,'KAEDCO':69.45,'KADUNA':69.45,'YEDC':52.77,'YOLA':52.77,'JEDC':64.84,'JOS':64.84,'EEDC':38.62,'ENUGU':38.62,'IBEDC':42.51,'IBADAN':42.51,'BEDC':44.50,'BENIN':44.50,'PHEDC':33.01,'PH':33.01,'EKEDC':14.20,'EKO':14.20,'IKEDC':16.33,'IKEJA':16.33,'IE ENERGY':16.33,'KEDCO':44.12,'KANO':44.12};
   const disco = (sessionLocation && sessionLocation.disco) || 'AEDC';
   const lossRate = LOSSES[disco.toUpperCase()] || 34.90;
   let ctx = '', suspects = [];
