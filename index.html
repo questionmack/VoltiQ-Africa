@@ -3560,6 +3560,7 @@ CRITICAL RULES — FOLLOW STRICTLY:
 10. REAL-MODE CONDUCT: When a user-uploaded data file is loaded, the simulated tools (detect_theft_anomalies, get_transformer_status, optimize_voltage, fetch_meter_data) are DISABLED. Do not call them, and do not announce, promise, or mention fetching transformer status, meter data, voltage optimization, or feeder-level anomalies. Analyze ONLY the uploaded file contents and say so plainly.
 11. VAT AWARENESS: Nigerian prepaid vend amounts typically include 7.5% VAT on the energy charge. Before flagging a blended vend rate (naira per kWh) as anomalous against a declared tariff, first compute tariff x 1.075. If the blended rate is within about 1% of that figure, report it as "consistent with the declared tariff plus 7.5% VAT" and do NOT escalate it as an anomaly or leakage.
 12. DISCO ALIASES: Nigerian DisCos have brand names and official abbreviations that refer to the SAME company. Treat these as identical and NEVER flag a mismatch between them: IE Energy = Ikeja Electric = IKEDC; Eko DisCo = EKEDC; Abuja DisCo = AEDC; Kaduna Electric = KAEDCO; Kano DisCo = KEDCO; Jos DisCo = JEDC; Yola DisCo = YEDC; Enugu DisCo = EEDC; Ibadan DisCo = IBEDC; Benin DisCo = BEDC; Port Harcourt DisCo = PHEDC. Only flag a DisCo identity conflict when two names belong to genuinely DIFFERENT companies (e.g. a file declaring EKEDC analyzed under IKEDC).
+13. VERIFIED FIGURES DISCIPLINE: When the analysis context contains a "VERIFIED FIGURES" block, every naira, kWh, and percentage figure you state MUST be copied verbatim from that block or from an individual data row shown in the context. NEVER add, multiply, annualize, project, or otherwise derive new numbers yourself. If a requested figure is not in the VERIFIED FIGURES block, state plainly that it was not computed from the file rather than calculating it.
 
 End every analysis with a concise executive summary.
 ${langCfg.systemSuffix}`;
@@ -4537,11 +4538,25 @@ function analyzeUploadedFile() {
         ctx += `DATA TYPE: PREPAID VENDING — customer purchase receipts, NOT consumption/feeder data\n`;
         ctx += `Vends: ${dataRows.length} | Energy purchased: ${total.toFixed(1)} kWh | Total vended: \u20a6${totalNgn.toLocaleString()}\n`;
         ctx += `Blended rate: \u20a6${total>0?(totalNgn/total).toFixed(2):'0'}/kWh\n`;
+        // ── VERIFIED FIGURES: deterministic, pre-computed — the AI may cite ONLY these ──
+        const keyLike = pat => Object.keys(dataRows[0]||{}).find(k => pat.test(k));
+        const kOrder = keyLike(/order\s*amount/i), kPaid = keyLike(/payment\s*amount/i), kCash = keyLike(/cashback/i), kTx = keyLike(/transaction\s*id/i);
+        const paidTotal = kPaid ? dataRows.reduce((s,r)=>s+num(r[kPaid]),0) : null;
+        const cashTxns = kCash ? dataRows.filter(r=>num(r[kCash])>0) : [];
+        const cashTotal = cashTxns.reduce((s,r)=>s+num(r[kCash]),0);
+        const gaps = (kOrder&&kPaid) ? dataRows.map(r=>({id:(kTx&&r[kTx])||'?', gap:+(num(r[kOrder])-num(r[kPaid])-(kCash?num(r[kCash]):0)).toFixed(2)})).filter(g=>Math.abs(g.gap)>0.5) : [];
+        let tariff = null; const tm = JSON.stringify(parsedSheets).match(/(\d+(?:\.\d+)?)\s*\/\s*kWh/i); if (tm) tariff = parseFloat(tm[1]);
+        ctx += `\nVERIFIED FIGURES (computed deterministically from the file — cite ONLY these; NEVER perform your own arithmetic):\n`;
+        ctx += `  vends=${dataRows.length} | kwh_total=${total.toFixed(1)} | ngn_ordered=${totalNgn}` + (paidTotal!==null?` | ngn_paid=${paidTotal}`:'') + `\n`;
+        ctx += `  cashback_total=\u20a6${cashTotal} (${cashTxns.length} txns: ${cashTxns.map(r=>num(r[kCash])).join('+')||'none'})\n`;
+        ctx += `  blended_rate=${total>0?(totalNgn/total).toFixed(2):'0'}`;
+        if (tariff && total>0) { const tv=+(tariff*1.075).toFixed(2); const br=totalNgn/total; ctx += ` | tariff_declared=${tariff} | tariff_plus_7.5pct_vat=${tv} | rate_vs_vat_delta_pct=${(Math.abs(br-tv)/tv*100).toFixed(2)}`; }
+        ctx += `\n  unexplained_payment_gaps=${gaps.length?gaps.map(g=>`${g.id}: \u20a6${g.gap}`).join('; '):'none'}\n`;
         ctx += `IMPORTANT: Vended kWh is energy the customer PAID for — it is NOT revenue loss. Do not present any figure here as loss or theft. Feeder-level theft analysis is NOT applicable to this file type. Any anomaly is a customer-side lead only; the maximum recommendation is field verification.\n`;
       } else {
         const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
         const zeros = kwhs.filter(v=>v===0).length;
-        ctx += `Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nImplied loss share at ${lossRate}% ATC&C: \u20a6${(total*(lossRate/100)*TARIFF).toLocaleString()} (estimate, not measured)\n`;
+        ctx += `VERIFIED FIGURES (cite only these; never compute your own): Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nImplied loss share at ${lossRate}% ATC&C: \u20a6${(total*(lossRate/100)*TARIFF).toLocaleString()} (estimate, not measured)\n`;
         dataRows.forEach((r,i) => {
           const kwh = kwhs[i];
           if (kwh === 0 || (std > 0 && kwh < mean - 2*std && kwh > 0)) {
