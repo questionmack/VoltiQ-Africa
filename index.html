@@ -4469,6 +4469,11 @@ function processFile(file) {
           if (rows.length > 0) parsedSheets[sn] = rows;
         });
         const total = Object.values(parsedSheets).reduce((s,r)=>s+r.length,0);
+        if (total > 50000) {
+          document.getElementById('fileName').textContent = '⚠ ' + file.name + ' — ' + total.toLocaleString() + ' rows detected';
+          document.getElementById('fileStats').textContent = 'File too large for browser analysis. Please split by feeder or state and upload one section at a time. Maximum: 50,000 rows per upload.';
+          return;
+        }
         document.getElementById('fileName').textContent = '✅ ' + file.name + ' — ' + Object.keys(parsedSheets).length + ' sheets, ' + total + ' rows';
         document.getElementById('fileStats').textContent = 'Sheets: ' + Object.keys(parsedSheets).join(' · ');
         enableBtn();
@@ -4484,6 +4489,11 @@ function processFile(file) {
           const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
           const obj = {}; headers.forEach((h,i)=>{ obj[h]=vals[i]||''; }); return obj;
         }).filter(r=>Object.values(r).some(v=>v));
+        if (rows.length > 50000) {
+          document.getElementById('fileName').textContent = '⚠ ' + file.name + ' — ' + rows.length.toLocaleString() + ' rows detected';
+          document.getElementById('fileStats').textContent = 'File too large for browser analysis. Please split by feeder or state and upload one section at a time. Maximum: 50,000 rows per upload.';
+          return;
+        }
         parsedSheets = { 'Data': rows };
         document.getElementById('fileName').textContent = '✅ ' + file.name + ' — ' + rows.length + ' rows';
         document.getElementById('fileStats').textContent = 'Columns: ' + headers.slice(0,6).join(', ');
