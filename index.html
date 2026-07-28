@@ -4458,6 +4458,8 @@ function processFile(file) {
     btn.disabled = false; btn.style.background = '#ff6b35';
     btn.style.color = '#050a0e'; btn.style.cursor = 'pointer';
     document.getElementById('fileInfo').style.display = 'block';
+    const banner = document.getElementById('demoBanner');
+    if (banner) banner.style.display = 'none';
   };
   if (['xlsx','xls','xlsm'].includes(ext)) {
     reader.onload = function(e) {
