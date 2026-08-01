@@ -4541,7 +4541,31 @@ function analyzeUploadedFile() {
   closeUpload();
   const TARIFF = 113;
   const LOSSES = {'AEDC':30.99,'ABUJA':30.99,'KAEDCO':69.45,'KADUNA':69.45,'YEDC':52.77,'YOLA':52.77,'JEDC':64.84,'JOS':64.84,'EEDC':38.62,'ENUGU':38.62,'IBEDC':42.51,'IBADAN':42.51,'BEDC':44.50,'BENIN':44.50,'PHEDC':33.01,'PH':33.01,'EKEDC':14.20,'EKO':14.20,'IKEDC':16.33,'IKEJA':16.33,'IE ENERGY':16.33,'KEDCO':44.12,'KANO':44.12};
-  const disco = (sessionLocation && sessionLocation.disco) || 'AEDC';
+  // ── Fix 4: prefer the DisCo declared IN the uploaded file over the dropdown ──
+  let disco = (sessionLocation && sessionLocation.disco) || 'AEDC';
+  const DISCO_ALIASES = {
+    'IKEJA ELECTRIC':'IKEDC','IE ENERGY':'IKEDC','IKEDC':'IKEDC','IKEJA':'IKEDC',
+    'EKO ELECTRIC':'EKEDC','EKO':'EKEDC','EKEDC':'EKEDC','EXCEL DISTRIBUTION':'EKEDC',
+    'ABUJA ELECTRIC':'AEDC','ABUJA':'AEDC','AEDC':'AEDC',
+    'KADUNA ELECTRIC':'KAEDCO','KAEDCO':'KAEDCO','KADUNA':'KAEDCO',
+    'KANO ELECTRIC':'KEDCO','KEDCO':'KEDCO','KANO':'KEDCO',
+    'JOS ELECTRIC':'JEDC','JEDC':'JEDC','JOS':'JEDC',
+    'YOLA ELECTRIC':'YEDC','YOLA DISCO':'YEDC','YEDC':'YEDC','YOLA':'YEDC',
+    'ENUGU ELECTRIC':'EEDC','EEDC':'EEDC','ENUGU':'EEDC',
+    'IBADAN ELECTRIC':'IBEDC','IBEDC':'IBEDC','IBADAN':'IBEDC',
+    'BENIN ELECTRIC':'BEDC','BEDC':'BEDC','BENIN':'BEDC',
+    'PORT HARCOURT ELECTRIC':'PHEDC','PHEDC':'PHEDC','PORT HARCOURT':'PHEDC','PH':'PHEDC'
+  };
+  try {
+    const firstRows = Object.values(parsedSheets)[0] || [];
+    if (firstRows.length) {
+      const discoCol = Object.keys(firstRows[0]).find(k => /disco/i.test(k));
+      if (discoCol) {
+        const raw = String(firstRows[0][discoCol] || '').trim().toUpperCase();
+        if (DISCO_ALIASES[raw]) disco = DISCO_ALIASES[raw];
+      }
+    }
+  } catch(e) {}
   const lossRate = LOSSES[disco.toUpperCase()] || 34.90;
   let ctx = '', suspects = [];
 
