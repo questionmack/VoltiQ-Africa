@@ -4490,11 +4490,11 @@ function processFile(file) {
   } else {
     reader.onload = function(e) {
       try {
-        const lines = e.target.result.split('\n').filter(l=>l.trim());
-        const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-        const rows = lines.slice(1).map(line => {
-          const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
-          const obj = {}; headers.forEach((h,i)=>{ obj[h]=vals[i]||''; }); return obj;
+        const parsed = parseCSVText(e.target.result).filter(r => r.some(v => String(v).trim() !== ''));
+        if (!parsed.length) throw new Error('Empty or unreadable file');
+        const headers = parsed[0].map(h => h.trim());
+        const rows = parsed.slice(1).map(vals => {
+          const obj = {}; headers.forEach((h,i)=>{ obj[h] = (vals[i] != null ? vals[i] : '').trim(); }); return obj;
         }).filter(r=>Object.values(r).some(v=>v));
         if (rows.length > 50000) {
           document.getElementById('fileName').textContent = '⚠ ' + file.name + ' — ' + rows.length.toLocaleString() + ' rows detected';
@@ -4509,6 +4509,31 @@ function processFile(file) {
     };
     reader.readAsText(file);
   }
+}
+
+
+// ── Robust CSV parser: handles quoted fields, embedded commas, escaped quotes,
+//    and CRLF/LF line endings. Keeps ALL values as strings so meter IDs with
+//    leading zeros (e.g. 0201001663990) are never coerced to numbers. ──
+function parseCSVText(text) {
+  const rows = []; let row = []; let field = ''; let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else { field += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { row.push(field); field = ''; }
+      else if (ch === '\r') { /* handled at newline */ }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else { field += ch; }
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
 }
 
 function analyzeUploadedFile() {
