@@ -3652,7 +3652,7 @@ ${langCfg.systemSuffix}`;
       // Show final text
       const textBlock = response.content.find(b => b.type === 'text');
       if (textBlock) {
-        addMessage('agent', textBlock.text);
+        addMessage('agent', scrubUnverifiedIds(textBlock.text));
         // ── SYNC DASHBOARD WITH AI RESULTS ──
         syncDashboard(textBlock.text, messages);
       }
@@ -3663,7 +3663,7 @@ ${langCfg.systemSuffix}`;
     if (response.stop_reason === 'tool_use') {
       // Show any text before tool calls
       const textBlock = response.content.find(b => b.type === 'text');
-      if (textBlock && textBlock.text.trim()) addMessage('agent', textBlock.text);
+      if (textBlock && textBlock.text.trim()) addMessage('agent', scrubUnverifiedIds(textBlock.text));
 
       // Process ALL tool calls
       const toolResults = [];
@@ -4536,6 +4536,24 @@ function parseCSVText(text) {
   return rows;
 }
 
+// ── Fix 3: code-side ID scrub. After the model responds, flag any meter ID in
+//    the report that is NOT present in the uploaded file — a fabricated ID can no
+//    longer pass as real. Appends a visible warning; never edits the report body. ──
+function scrubUnverifiedIds(text) {
+  try {
+    const fileIds = window._voltiqFileIds;
+    if (!fileIds || fileIds.size === 0) return text;
+    const found = new Set();
+    (text.match(/\b(?:MTR-[A-Za-z0-9]+|\d{10,})\b/g) || []).forEach(tok => {
+      if (!fileIds.has(tok)) found.add(tok);
+    });
+    if (found.size) {
+      text += `\n\n---\n> \u26a0\ufe0f **VoltIQ data-integrity check:** the following identifier(s) in this report were NOT found in your uploaded file and may be model-generated \u2014 verify against source records before any field action: ${[...found].join(', ')}`;
+    }
+    return text;
+  } catch(e) { return text; }
+}
+
 function analyzeUploadedFile() {
   if (!uploadedFileData || Object.keys(parsedSheets).length === 0) return;
   closeUpload();
@@ -4651,6 +4669,7 @@ function analyzeUploadedFile() {
         ctx += `\nPattern indicators flagged: ${suspects.length} (field verification required before any action)\n`;
         suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | ${s.address} | ${s.pattern} | est. \u20a6${s.loss.toLocaleString()}/mo | severity: ${s.severity}\n`; });
       }
+      try { window._voltiqFileIds = new Set(dataRows.map(r => String(r[cm.account]||'').trim()).filter(Boolean)); } catch(e){}
       ctx += `\nSample data:\n`; dataRows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(r)}\n`; });
     } else {
       ctx += `Sample rows:\n`; rows.slice(0,6).forEach(r=>{ ctx += `  ${JSON.stringify(r)}\n`; });
