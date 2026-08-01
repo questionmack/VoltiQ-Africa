@@ -4599,10 +4599,29 @@ function analyzeUploadedFile() {
         const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
         const zeros = kwhs.filter(v=>v===0).length;
         ctx += `VERIFIED FIGURES (cite only these; never compute your own): Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nImplied loss share at ${lossRate}% ATC&C: \u20a6${(total*(lossRate/100)*TARIFF).toLocaleString()} (estimate, not measured)\n`;
+        // ── Per-meter analysis: group each meter's readings (file order), classify
+        //    ONCE per meter (fixes per-row double-counting), and detect sudden-drop
+        //    tamper by comparing each meter to ITS OWN baseline, not the global mean. ──
+        const byMeter = {};
         dataRows.forEach((r,i) => {
-          const kwh = kwhs[i];
-          if (kwh === 0 || (std > 0 && kwh < mean - 2*std && kwh > 0)) {
-            suspects.push({ rank: suspects.length+1, account: r[cm.account]||'ROW-'+(i+2), address: r[cm.address]||'On file', name: r[cm.name]||'Customer', kwh, expected: Math.round(mean), loss: Math.round((mean-kwh)*TARIFF), pattern: kwh===0?'Zero consumption — bypass indicator':'Statistical low — tamper indicator', severity: kwh===0?'HIGH':'MEDIUM' });
+          const id = r[cm.account] || 'ROW-'+(i+2);
+          if (!byMeter[id]) byMeter[id] = { id, address: r[cm.address]||'On file', name: r[cm.name]||'Customer', kwhs: [] };
+          byMeter[id].kwhs.push(kwhs[i]);
+        });
+        Object.values(byMeter).forEach(m => {
+          const arr = m.kwhs, n = arr.length;
+          const half = Math.max(1, Math.floor(n/2));
+          const baseArr = arr.slice(0, n-half).length ? arr.slice(0, n-half) : arr;
+          const baseline = baseArr.reduce((a,b)=>a+b,0)/baseArr.length;
+          const recentArr = arr.slice(n-half);
+          const recent = recentArr.reduce((a,b)=>a+b,0)/recentArr.length;
+          const recentZeros = recentArr.filter(v=>v===0).length;
+          let pattern=null, severity=null;
+          if (recentZeros >= 1 && baseline > 3) { pattern='Zero consumption — bypass indicator'; severity='HIGH'; }
+          else if (baseline > 10 && recent > 0 && recent < 0.4*baseline) { pattern='Sudden drop — tamper indicator'; severity='HIGH'; }
+          if (pattern) {
+            const lossKwh = Math.max(0, baseline - recent);
+            suspects.push({ rank: suspects.length+1, account: m.id, address: m.address, name: m.name, kwh: Math.round(recent), expected: Math.round(baseline||mean), loss: Math.round(lossKwh*TARIFF), pattern, severity });
           }
         });
         ctx += `\nPattern indicators flagged: ${suspects.length} (field verification required before any action)\n`;
