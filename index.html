@@ -2516,7 +2516,7 @@ function executeTool(name, args) {
       suspected_anomalies: suspects,
       estimated_monthly_revenue_loss_ngn: analysis.totalEstimatedLossNgn,
       _pilotTrackingFired: (() => {
-        if (typeof logSuspectForTracking === 'function' && suspects.length > 0) {
+        if (typeof logSuspectForTracking === 'function' && suspects.length > 0 && uploadedFileData) {
           suspects.forEach(s => logSuspectForTracking(s, loc.disco, loc.state));
         }
         return true;
