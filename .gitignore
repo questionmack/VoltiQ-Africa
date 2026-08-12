@@ -1,0 +1,27 @@
+# Real customer/DisCo data — never commit
+discos data/
+*.csv
+*.xlsx
+*.xls
+testers*
+
+# Local backups & scratch
+*.pre-gate
+*.pre-math
+index.html.*
+fix*.py
+*.bak
+
+# Secrets & environment
+.env
+.env.*
+.dev.vars
+*.key
+*secret*
+
+# OS / editor / binaries
+.DS_Store
+.wrangler/
+node_modules/
+Screenshot*.png
+*.HEIC
