@@ -1566,8 +1566,10 @@ function onStateFilterChange(value) {
 }
 
 function buildDiscoFilterDropdown(availableDiscos, availableStates, currentDiscoFilter, currentStateFilter) {
+  const NG_STATES = ['Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno','Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT','Gombe','Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos','Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto','Taraba','Yobe','Zamfara'];
+  const stateList = (availableStates && availableStates.length) ? availableStates : NG_STATES;
   const stateOptions = ['<option value="">-- Select a state --</option>']
-    .concat((availableStates || []).map(s =>
+    .concat(stateList.map(s =>
       `<option value="${s}" ${s === currentStateFilter ? 'selected' : ''}>${s}</option>`
     ));
   const stateSelect = `<select onchange="onStateFilterChange(this.value)" style="background:#0f1f30;border:1px solid #1a3a55;color:#00d4ff;font-family:'Share Tech Mono',monospace;font-size:0.65rem;padding:6px 10px;margin-right:8px;">${stateOptions.join('')}</select>`;
