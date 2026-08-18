@@ -4670,6 +4670,18 @@ function analyzeUploadedFile() {
         });
         ctx += `\nPattern indicators flagged: ${suspects.length} (field verification required before any action)\n`;
         suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | ${s.address} | ${s.pattern} | est. \u20a6${s.loss.toLocaleString()}/mo | severity: ${s.severity}\n`; });
+        // ── Write real-mode flagged suspects to Pilot Tracking (previously missing) ──
+        if (typeof logSuspectForTracking === 'function' && suspects.length > 0 && sessionLocation && sessionLocation.state) {
+          suspects.slice(0,10).forEach(s => logSuspectForTracking({
+            meter_id: s.account,
+            address: s.address,
+            area: sessionLocation.city || '',
+            anomaly_type: s.pattern,
+            z_score: null,
+            confidence: s.severity,
+            monthly_loss_ngn: s.loss,
+          }, disco, sessionLocation.state));
+        }
       }
       try { window._voltiqFileIds = new Set(dataRows.map(r => String(r[cm.account]||'').trim()).filter(Boolean)); } catch(e){}
       ctx += `\nSample data:\n`; dataRows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(r)}\n`; });
