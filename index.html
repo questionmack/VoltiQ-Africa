@@ -4642,7 +4642,7 @@ function analyzeUploadedFile() {
       } else {
         const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
         const zeros = kwhs.filter(v=>v===0).length;
-        ctx += `VERIFIED FIGURES (cite only these; never compute your own): Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nImplied loss share at ${lossRate}% ATC&C: \u20a6${(total*(lossRate/100)*TARIFF).toLocaleString()} (estimate, not measured)\n`;
+        ctx += `VERIFIED FIGURES (cite only these; never compute your own): Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nNOTE: Feeder-level ATC&C loss CANNOT be computed from billing data alone (it needs transformer energy-supplied readings, which are not in this file). Do NOT state an ATC&C percentage or any aggregate loss figure as this feeder's measured result. Report per-meter anomaly flags only.\n`;
         // ── Per-meter analysis: group each meter's readings (file order), classify
         //    ONCE per meter (fixes per-row double-counting), and detect sudden-drop
         //    tamper by comparing each meter to ITS OWN baseline, not the global mean. ──
@@ -4669,7 +4669,7 @@ function analyzeUploadedFile() {
           }
         });
         ctx += `\nPattern indicators flagged: ${suspects.length} (field verification required before any action)\n`;
-        suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | ${s.address} | ${s.pattern} | est. \u20a6${s.loss.toLocaleString()}/mo | severity: ${s.severity}\n`; });
+        suspects.slice(0,10).forEach(s => { ctx += `  #${s.rank} | ${s.account} | [address withheld from model] | ${s.pattern} | est. \u20a6${s.loss.toLocaleString()}/mo | severity: ${s.severity}\n`; });
         // ── Write real-mode flagged suspects to Pilot Tracking (previously missing) ──
         if (typeof logSuspectForTracking === 'function' && suspects.length > 0 && sessionLocation && sessionLocation.state) {
           suspects.slice(0,10).forEach(s => logSuspectForTracking({
@@ -4684,7 +4684,11 @@ function analyzeUploadedFile() {
         }
       }
       try { window._voltiqFileIds = new Set(dataRows.map(r => String(r[cm.account]||'').trim()).filter(Boolean)); } catch(e){}
-      ctx += `\nSample data:\n`; dataRows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(r)}\n`; });
+      // PII GUARD: never transmit customer names/addresses to the model. Drop the
+      // mapped name/address columns plus any obvious PII-ish keys before sampling.
+      const _piiKeys = [cm.address, cm.name].filter(Boolean);
+      const _stripPII = (r) => { const o = {}; for (const k in r) { const kl = String(k).toLowerCase(); if (_piiKeys.includes(k)) continue; if (/addr|name|street|premise|phone|email|bvn|\bnin\b/.test(kl)) continue; o[k] = r[k]; } return o; };
+      ctx += `\nSample data (customer names/addresses removed before analysis):\n`; dataRows.slice(0,5).forEach((r,i)=>{ ctx += `  ${JSON.stringify(_stripPII(r))}\n`; });
     } else {
       ctx += `Sample rows:\n`; rows.slice(0,6).forEach(r=>{ ctx += `  ${JSON.stringify(r)}\n`; });
     }
@@ -4692,7 +4696,7 @@ function analyzeUploadedFile() {
 
   const aMap = { theft:'energy theft detection and suspect identification', voltage:'voltage optimization', full:'complete grid audit — theft detection, voltage optimization, and infrastructure analysis' };
   const prompt = `VoltIQ Africa — REAL DisCo Data Analysis
-File: ${parsedFileName} | DisCo: ${disco} | ATC&C Loss: ${lossRate}% | NERC Target: 20.54% | ${lossRate > 20.54 ? `Gap: +${(lossRate-20.54).toFixed(2)}pp above target` : `Performing ${(20.54-lossRate).toFixed(2)}pp BETTER than target`}
+File: ${parsedFileName} | DisCo: ${disco}
 Analysis: ${aMap[selectedAnalysis]||'full audit'}
 
 REAL DATA FROM FILE:
@@ -4704,9 +4708,9 @@ Based on this REAL data from ${disco}, provide:
 3. REVENUE RECOVERY — monthly and annual ₦ recovery potential
 4. INFRASTRUCTURE — if project data found, which investments most reduce losses
 5. 30-DAY ACTION PLAN — prioritized steps for ${disco} management
-6. NERC PATH — ${lossRate > 20.54 ? `how to move from ${lossRate}% toward the 20.54% target` : `this DisCo already beats the 20.54% target at ${lossRate}% — how to sustain and extend this performance`}
+6. NEXT STEPS — how targeted recovery on this feeder supports the DisCo's broader loss-reduction goals. Do NOT claim a computed ATC&C figure for this feeder; any DisCo-level NERC figure is background context only, never presented as measured from this file.
 
-Rules: All figures in ₦ · Reference actual account numbers and addresses from the data · Be specific not generic`;
+Rules: All figures in ₦ · Reference ONLY meter/account IDs — never customer names or addresses · Flag review priorities for field verification, never "confirmed" theft · Be specific not generic`;
 
   document.getElementById('userInput').value = prompt;
   sendMessage(true);
