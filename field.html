@@ -242,6 +242,7 @@ function getFieldToken() {
   const fromUrl = params.get('token');
   if (fromUrl) {
     localStorage.setItem('voltiq_field_token', fromUrl);
+    try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
     return fromUrl;
   }
   return localStorage.getItem('voltiq_field_token');
