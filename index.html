@@ -4542,6 +4542,13 @@ function parseCSVText(text) {
 //    the report that is NOT present in the uploaded file — a fabricated ID can no
 //    longer pass as real. Appends a visible warning; never edits the report body. ──
 function scrubUnverifiedIds(text) {
+  // Legal-safety scrub: VoltIQ outputs flag review priorities, never verdicts.
+  // "confirmed"/"proven" theft language is the top legal risk, so strip it at the output
+  // layer rather than relying on the prompt alone.
+  if (text) text = text
+    .replace(/\bconfirmed\b/gi, 'flagged (field verification required)')
+    .replace(/\bproven\b/gi, 'indicated')
+    .replace(/\bverified theft\b/gi, 'suspected activity (unverified)');
   try {
     const fileIds = window._voltiqFileIds;
     if (!fileIds || fileIds.size === 0) return text;
@@ -4608,15 +4615,17 @@ function analyzeUploadedFile() {
       if (excluded > 0) ctx += `(${excluded} summary row(s) excluded from analysis)\n`;
 
       // ── Numeric cleaner (fixes precedence bug: replace must run on the value) ──
-      const num = v => parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, '')) || 0;
+      // null = blank/missing cell (a data gap, NOT a real zero reading).
+      const num = v => { const s = String(v ?? '').trim(); if (s === '') return null; const n = parseFloat(s.replace(/[^0-9.\-]/g, '')); return isNaN(n) ? null : n; };
 
       // ── Prepaid vending detection: purchase receipts, not consumption data ──
       const colStr = cols.join(' ').toLowerCase();
       const isPrepaidVending = /token/.test(colStr) && /(order|payment)\s*amount/.test(colStr);
 
-      const kwhs = dataRows.map(r => num(r[cm.consumption] || r[cm.amount] || 0));
-      const total = kwhs.reduce((a,b)=>a+b,0);
-      const mean  = total/kwhs.length || 0;
+      const kwhs = dataRows.map(r => num(cm.consumption ? r[cm.consumption] : r[cm.amount]));
+      const total = kwhs.reduce((a,b)=>a+(b||0),0);
+      const _present = kwhs.filter(v => v !== null);
+      const mean  = _present.length ? _present.reduce((a,b)=>a+b,0)/_present.length : 0;
 
       if (isPrepaidVending) {
         const amounts = dataRows.map(r => num(r['Order Amount (\u20a6)'] ?? r['Payment Amount (\u20a6)'] ?? r[cm.amount]));
@@ -4640,8 +4649,8 @@ function analyzeUploadedFile() {
         ctx += `\n  unexplained_payment_gaps=${gaps.length?gaps.map(g=>`${g.id}: \u20a6${g.gap}`).join('; '):'none'}\n`;
         ctx += `IMPORTANT: Vended kWh is energy the customer PAID for — it is NOT revenue loss. Do not present any figure here as loss or theft. Feeder-level theft analysis is NOT applicable to this file type. Any anomaly is a customer-side lead only; the maximum recommendation is field verification.\n`;
       } else {
-        const std   = Math.sqrt(kwhs.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/kwhs.length) || 0;
-        const zeros = kwhs.filter(v=>v===0).length;
+        const std   = Math.sqrt(_present.map(v=>(v-mean)**2).reduce((a,b)=>a+b,0)/(_present.length||1)) || 0;
+        const zeros = kwhs.filter(v=>v===0).length;   // real zeros only — blanks are null, not counted
         ctx += `VERIFIED FIGURES (cite only these; never compute your own): Records: ${dataRows.length} | Total kWh: ${total.toFixed(0)} | Avg: ${mean.toFixed(1)} | Zeros: ${zeros}\nNOTE: Feeder-level ATC&C loss CANNOT be computed from billing data alone (it needs transformer energy-supplied readings, which are not in this file). Do NOT state an ATC&C percentage or any aggregate loss figure as this feeder's measured result. Report per-meter anomaly flags only.\n`;
         // ── Per-meter analysis: group each meter's readings (file order), classify
         //    ONCE per meter (fixes per-row double-counting), and detect sudden-drop
@@ -4655,14 +4664,18 @@ function analyzeUploadedFile() {
         Object.values(byMeter).forEach(m => {
           const arr = m.kwhs, n = arr.length;
           const half = Math.max(1, Math.floor(n/2));
-          const baseArr = arr.slice(0, n-half).length ? arr.slice(0, n-half) : arr;
-          const baseline = baseArr.reduce((a,b)=>a+b,0)/baseArr.length;
-          const recentArr = arr.slice(n-half);
-          const recent = recentArr.reduce((a,b)=>a+b,0)/recentArr.length;
-          const recentZeros = recentArr.filter(v=>v===0).length;
+          const baseRaw = arr.slice(0, n-half).length ? arr.slice(0, n-half) : arr;
+          const recentRaw = arr.slice(n-half);
+          // Only count REAL readings; blank cells (null) are data gaps, not zeros.
+          const baseVals = baseRaw.filter(v => v !== null);
+          const recentVals = recentRaw.filter(v => v !== null);
+          const baseline = baseVals.length ? baseVals.reduce((a,b)=>a+b,0)/baseVals.length : 0;
+          const recent = recentVals.length ? recentVals.reduce((a,b)=>a+b,0)/recentVals.length : 0;
+          const recentZeros = recentVals.filter(v => v === 0).length;   // genuine 0.0 readings only
           let pattern=null, severity=null;
-          if (recentZeros >= 1 && baseline > 3) { pattern='Zero consumption — bypass indicator'; severity='HIGH'; }
-          else if (baseline > 10 && recent > 0 && recent < 0.4*baseline) { pattern='Sudden drop — tamper indicator'; severity='HIGH'; }
+          // Require at least one real recent reading, so an all-blank tail is never flagged.
+          if (recentVals.length >= 1 && recentZeros >= 1 && baseline > 3) { pattern='Zero consumption — bypass indicator'; severity='HIGH'; }
+          else if (recentVals.length >= 1 && baseline > 10 && recent > 0 && recent < 0.4*baseline) { pattern='Sudden drop — tamper indicator'; severity='HIGH'; }
           if (pattern) {
             const lossKwh = Math.max(0, baseline - recent);
             suspects.push({ rank: suspects.length+1, account: m.id, address: m.address, name: m.name, kwh: Math.round(recent), expected: Math.round(baseline||mean), loss: Math.round(lossKwh*TARIFF), pattern, severity });
