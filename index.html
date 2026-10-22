@@ -4479,6 +4479,11 @@ function processFile(file) {
         });
         const total = Object.values(parsedSheets).reduce((s,r)=>s+r.length,0);
         if (total > 50000) {
+          // Reject safely: do NOT leave stale data loaded or the button live,
+          // or a user could unknowingly analyze the PREVIOUS file under this name.
+          parsedSheets = {}; uploadedFileData = null; parsedFileName = null;
+          const b = document.getElementById('analyzeBtn');
+          if (b) { b.disabled = true; b.style.background = '#1a3a55'; b.style.color = '#5a7a95'; b.style.cursor = 'not-allowed'; }
           document.getElementById('fileName').textContent = '⚠ ' + file.name + ' — ' + total.toLocaleString() + ' rows detected';
           document.getElementById('fileStats').textContent = 'File too large for browser analysis. Please split by feeder or state and upload one section at a time. Maximum: 50,000 rows per upload.';
           return;
@@ -4499,6 +4504,11 @@ function processFile(file) {
           const obj = {}; headers.forEach((h,i)=>{ obj[h] = (vals[i] != null ? vals[i] : '').trim(); }); return obj;
         }).filter(r=>Object.values(r).some(v=>v));
         if (rows.length > 50000) {
+          // Reject safely: do NOT leave stale data loaded or the button live,
+          // or a user could unknowingly analyze the PREVIOUS file under this name.
+          parsedSheets = {}; uploadedFileData = null; parsedFileName = null;
+          const b = document.getElementById('analyzeBtn');
+          if (b) { b.disabled = true; b.style.background = '#1a3a55'; b.style.color = '#5a7a95'; b.style.cursor = 'not-allowed'; }
           document.getElementById('fileName').textContent = '⚠ ' + file.name + ' — ' + rows.length.toLocaleString() + ' rows detected';
           document.getElementById('fileStats').textContent = 'File too large for browser analysis. Please split by feeder or state and upload one section at a time. Maximum: 50,000 rows per upload.';
           return;
