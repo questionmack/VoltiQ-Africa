@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoltIQ — NERC Compliance</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root { --navy:#0B2436; --orange:#F2792B; --ink:#1a2531; --muted:#5a6b78; --line:#e3e8ec; --bg:#f6f8fa; --ok:#1a8a52; --bad:#c0392b; --warn:#b7791f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap { max-width:1000px; margin:0 auto; padding:24px 20px 60px; }
+  .head { display:flex; align-items:center; gap:12px; padding-bottom:12px; }
+  .mark { width:40px; height:40px; }
+  .wm { font-weight:800; letter-spacing:1.3px; font-size:19px; }
+  .wm .o { color:var(--orange); } .wm .n { color:var(--navy); }
+  .tag { font-size:11px; letter-spacing:1.4px; color:var(--muted); text-transform:uppercase; margin-top:2px; }
+  .rule { height:3px; background:linear-gradient(90deg,var(--navy) 60%,var(--orange) 60%); margin:2px 0 22px; border-radius:2px; }
+  h1 { font-size:20px; margin:0 0 4px; color:var(--navy); }
+  .sub { color:var(--muted); font-size:13.5px; margin:0 0 18px; }
+  .drop { border:2px dashed #c3ccd3; border-radius:12px; background:#fff; padding:26px; text-align:center; cursor:pointer; transition:.15s; }
+  .drop:hover { border-color:var(--orange); background:#fff8f3; }
+  .drop input { display:none; }
+  .drop b { color:var(--navy); }
+  .drop span { color:var(--muted); font-size:13px; }
+  .tiles { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:22px 0 8px; }
+  @media(max-width:720px){ .tiles{ grid-template-columns:repeat(2,1fr);} }
+  .tile { background:#fff; border:1px solid var(--line); border-radius:11px; padding:14px 14px 12px; }
+  .tile .v { font-size:26px; font-weight:800; color:var(--navy); line-height:1; }
+  .tile .l { font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-top:7px; }
+  .tile.bad .v{ color:var(--bad);} .tile.warn .v{ color:var(--warn);} .tile.ok .v{ color:var(--ok);}
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-top:16px; }
+  .card h3 { margin:0 0 10px; font-size:14.5px; color:var(--navy); display:flex; align-items:center; gap:8px; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:999px; font-weight:700; }
+  .pill.bad{ background:#fdecea; color:var(--bad);} .pill.warn{ background:#fdf3e2; color:var(--warn);} .pill.ok{ background:#e7f6ee; color:var(--ok);}
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; }
+  td.r,th.r { text-align:right; }
+  .reason { color:var(--warn); font-size:12.5px; }
+  .note { background:#f0f6ff; border:1px solid #d3e4fb; border-radius:10px; padding:11px 14px; font-size:12.8px; color:#33506e; margin-top:16px; }
+  .hidden { display:none; }
+  .foot { margin-top:26px; color:#9aa6af; font-size:11.5px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <svg class="mark" viewBox="0 0 100 100"><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="none" stroke="#0B2436" stroke-width="6"/><polygon points="56,20 34,54 48,54 44,80 68,42 53,42" fill="#F2792B"/></svg>
+    <div><div class="wm"><span class="n">VOLT</span><span class="o">IQ</span></div><div class="tag">NERC Band A Compliance Audit</div></div>
+  </div>
+  <div class="rule"></div>
+
+  <h1>Feeder Availability &amp; NERC Compliance</h1>
+  <p class="sub">Upload a NERC Availability Template. VoltIQ audits Band A supply hours, flags sanction-risk feeders, and separates grid faults from data it cannot trust — it never scores a row it can't verify.</p>
+
+  <label class="drop">
+    <input type="file" id="file" accept=".xlsx,.xls">
+    <div><b>Choose a NERC Availability Template</b> (.xlsx)</div>
+    <span id="fname">No file selected</span>
+  </label>
+
+  <div id="err" class="note hidden" style="background:#fdecea;border-color:#f5c6c0;color:#a5342a;"></div>
+
+  <div id="results" class="hidden">
+    <div class="tiles">
+      <div class="tile"><div class="v" id="t-aud">0</div><div class="l">Feeders audited</div></div>
+      <div class="tile ok"><div class="v" id="t-rate">0%</div><div class="l">Compliance rate</div></div>
+      <div class="tile ok"><div class="v" id="t-comp">0</div><div class="l">Complied (≥20h)</div></div>
+      <div class="tile bad"><div class="v" id="t-not">0</div><div class="l">Not complied</div></div>
+      <div class="tile warn"><div class="v" id="t-rev">0</div><div class="l">Needs review</div></div>
+    </div>
+
+    <div class="card" id="card-not">
+      <h3>NERC sanction risk <span class="pill bad" id="not-count">0</span></h3>
+      <table><thead><tr><th>Feeder</th><th>Band</th><th class="r">Hours supplied</th><th class="r">Required</th><th class="r">Fault hours</th></tr></thead><tbody id="not-body"></tbody></table>
+      <div id="not-empty" class="sub" style="margin:6px 0 0;">No non-compliant feeders among audited rows.</div>
+    </div>
+
+    <div class="card">
+      <h3>Needs review — not scored <span class="pill warn" id="rev-count">0</span></h3>
+      <p class="sub" style="margin:0 0 8px;">These rows are excluded from the compliance figures because their columns are misaligned or unreadable. VoltIQ flags them for a human instead of guessing.</p>
+      <table><thead><tr><th>Feeder</th><th>Band</th><th>Reason</th></tr></thead><tbody id="rev-body"></tbody></table>
+    </div>
+
+    <div class="note">VoltIQ audits only rows it can verify and quarantines the rest. The compliance figures above reflect the <b id="n-aud">0</b> clean feeders, not the <b id="n-total">0</b> rows in the sheet — an honest number you can take to NERC.</div>
+  </div>
+
+  <div class="foot">VoltIQ Africa · NERC Compliance module (prototype)</div>
+</div>
+
+<script>
+const BAND_EXPECTED = { A:20, B:16, C:12, D:8, E:4 };
+const FAULT_CODES = { 'F/O':'Feeder Off','O/C':'Over Current','E/F':'Earth Fault','OC/EF':'Over Current / Earth Fault','INST O/C':'Instantaneous Over Current','P/O':'Partial Outage','O/S':'Out of Service','LOSS':'Line Loss' };
+function cleanCell(v){ if(v==null||v==='')return{mw:0,fault:null,bad:false}; if(typeof v==='number')return{mw:v,fault:null,bad:false};
+  let s=String(v).trim(); if(s==='1..25')s='1.25'; const up=s.toUpperCase();
+  if(FAULT_CODES[up])return{mw:0,fault:FAULT_CODES[up],bad:false};
+  if(up==='#REF!'||up.startsWith('#'))return{mw:0,fault:null,bad:true};
+  const n=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(n))return{mw:0,fault:s,bad:true}; return{mw:n,fault:null,bad:false}; }
+function analyzeNerc(rows){
+  let hdr=-1; for(let i=0;i<Math.min(rows.length,8);i++){ const vals=rows[i].map(x=>String(x).toUpperCase()); if(vals.includes('TCN')&&(vals.includes('REMARKS')||vals.includes('BAND'))){hdr=i;break;} }
+  if(hdr===-1) throw new Error('This does not look like a NERC Availability Template (no TCN / REMARKS header row found).');
+  const H=rows[hdr].map(x=>String(x==null?'':x)); const col=n=>H.findIndex(h=>h.toUpperCase().trim()===n);
+  const iBand=col('BAND'),i33=col('33KV FEEDER'),i11=col('11KV FEEDER'),iRem=col('REMARKS');
+  const iPeak=H.findIndex(h=>h.toUpperCase().includes('PEAK')); const iTotal=H.findIndex(h=>h.toUpperCase().trim()==='TOTAL');
+  const hs=iPeak+1, he=iTotal-1;
+  const complied=[],notComplied=[],review=[];
+  for(let r=hdr+1;r<rows.length;r++){ const row=rows[r]; if(!row)continue;
+    const name=(row[i11]||row[i33]||'').toString().trim(); if(!name||name.toUpperCase()==='TOTAL')continue;
+    const band=(row[iBand]||'').toString().trim().toUpperCase();
+    const remarkStr=String(iRem>=0?(row[iRem]==null?'':row[iRem]):'').trim();
+    const remarkIsStatus=/^(complied|not complied)$/i.test(remarkStr)||remarkStr==='';
+    const validBand=BAND_EXPECTED.hasOwnProperty(band);
+    let hours=0,faults=0,bad=0;
+    for(let c=hs;c<=he;c++){ const cell=cleanCell(row[c]); if(cell.bad)bad++; if(cell.fault)faults++; if(cell.mw>0)hours++; }
+    if(!validBand||!remarkIsStatus||bad>0){ review.push({name,band,reason:!validBand?'band missing/invalid':(!remarkIsStatus?'columns appear shifted':'unreadable / broken cells')}); continue; }
+    const exp=BAND_EXPECTED[band]; const rec={name,band,hours,expected:exp,faultHours:faults};
+    (hours>=exp?complied:notComplied).push(rec);
+  }
+  const audited=complied.length+notComplied.length;
+  return {total:complied.length+notComplied.length+review.length,audited,complied:complied.length,notComplied,review,
+    rate:audited?Math.round(100*complied.length/audited):0};
+}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function render(o){
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('t-aud').textContent=o.audited;
+  document.getElementById('t-rate').textContent=o.rate+'%';
+  document.getElementById('t-comp').textContent=o.complied;
+  document.getElementById('t-not').textContent=o.notComplied.length;
+  document.getElementById('t-rev').textContent=o.review.length;
+  document.getElementById('n-aud').textContent=o.audited;
+  document.getElementById('n-total').textContent=o.total;
+  document.getElementById('not-count').textContent=o.notComplied.length;
+  document.getElementById('rev-count').textContent=o.review.length;
+  document.getElementById('not-empty').style.display=o.notComplied.length?'none':'block';
+  document.getElementById('not-body').innerHTML=o.notComplied.map(f=>`<tr><td>${esc(f.name)}</td><td>${esc(f.band)}</td><td class="r">${f.hours}</td><td class="r">${f.expected}</td><td class="r">${f.faultHours}</td></tr>`).join('');
+  document.getElementById('rev-body').innerHTML=o.review.map(f=>`<tr><td>${esc(f.name||'(unnamed)')}</td><td>${esc(f.band||'?')}</td><td class="reason">${esc(f.reason)}</td></tr>`).join('');
+}
+document.getElementById('file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  document.getElementById('fname').textContent=f.name;
+  const err=document.getElementById('err'); err.classList.add('hidden');
+  try{
+    const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
+    const sheet=wb.Sheets['SOURCE DATA']||wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:''});
+    render(analyzeNerc(rows));
+  }catch(ex){ err.textContent='Could not process file: '+ex.message; err.classList.remove('hidden'); document.getElementById('results').classList.add('hidden'); }
+});
+</script>
+</body>
+</html>
