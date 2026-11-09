@@ -25,3 +25,8 @@ fix*.py
 node_modules/
 Screenshot*.png
 *.HEIC
+
+# Business docs — never publish
+*.docx
+*.pptx
+*.pdf
