@@ -5,100 +5,215 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VoltIQ — NERC Compliance</title>
 <script src="xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --navy:#0B2436; --navy2:#13324A; --orange:#F2792B; --ink:#1a2531; --muted:#5a6b78; --line:#e3e8ec; --bg:#eef2f5; --ok:#1a8a52; --okbg:#e7f6ee; --bad:#c0392b; --badbg:#fdecea; --warn:#b7791f; --warnbg:#fdf3e2; }
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:-apple-system,"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); }
-  .topbar { background:var(--navy); color:#fff; }
-  .topbar .inner { max-width:1040px; margin:0 auto; padding:18px 20px; display:flex; align-items:center; gap:13px; }
-  .mark { width:40px; height:40px; }
-  .wm { font-weight:800; letter-spacing:1.3px; font-size:20px; }
-  .wm .o { color:var(--orange); }
-  .tag { font-size:11px; letter-spacing:1.4px; color:#9fb3c2; text-transform:uppercase; margin-top:2px; }
-  .accent { height:4px; background:linear-gradient(90deg,var(--orange) 0%,#f7a76a 100%); }
-  .wrap { max-width:1040px; margin:0 auto; padding:26px 20px 70px; }
-  h1 { font-size:22px; margin:0 0 5px; color:var(--navy); }
-  .sub { color:var(--muted); font-size:13.5px; margin:0 0 20px; }
-  .drop { border:2px dashed #b9c6cf; border-radius:14px; background:#fff; padding:28px; text-align:center; cursor:pointer; transition:.15s; }
-  .drop:hover { border-color:var(--orange); background:#fff8f3; }
-  .drop input { display:none; }
-  .drop b { color:var(--navy); } .drop span { color:var(--muted); font-size:13px; }
-  .resbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:22px 0 2px; flex-wrap:wrap; }
-  .resbar h2 { font-size:16px; color:var(--navy); margin:0; }
-  .dlbtn { background:var(--orange); color:#fff; border:none; border-radius:9px; padding:11px 18px; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(242,121,43,.3); }
-  .dlbtn:hover { background:#dd6a1f; }
-  .tiles { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:12px 0 6px; }
-  @media(max-width:720px){ .tiles{ grid-template-columns:repeat(2,1fr);} }
-  .tile { border-radius:12px; padding:15px 15px 13px; border:1px solid var(--line); background:#fff; }
-  .tile .v { font-size:28px; font-weight:800; line-height:1; }
-  .tile .l { font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; margin-top:8px; color:var(--muted); }
-  .tile.nav { background:#eaf0f5; border-color:#d6e0e8; } .tile.nav .v{ color:var(--navy);}
-  .tile.ok { background:var(--okbg); border-color:#c7e8d4; } .tile.ok .v{ color:var(--ok);}
-  .tile.bad { background:var(--badbg); border-color:#f5cfc9; } .tile.bad .v{ color:var(--bad);}
-  .tile.warn { background:var(--warnbg); border-color:#f1dcb3; } .tile.warn .v{ color:var(--warn);}
-  .card { background:#fff; border:1px solid var(--line); border-radius:13px; padding:16px 18px; margin-top:16px; border-top:4px solid var(--navy); }
-  .card.risk { border-top-color:var(--bad); } .card.rev { border-top-color:var(--warn); }
-  .card h3 { margin:0 0 10px; font-size:14.5px; color:var(--navy); display:flex; align-items:center; gap:8px; }
-  .pill { font-size:11px; padding:2px 8px; border-radius:999px; font-weight:700; }
-  .pill.bad{ background:var(--badbg); color:var(--bad);} .pill.warn{ background:var(--warnbg); color:var(--warn);}
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
-  th { color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; }
-  td.r,th.r { text-align:right; }
-  .reason { color:var(--warn); font-size:12.5px; }
-  .note { background:#eaf1fb; border:1px solid #cfe0f8; border-radius:10px; padding:11px 14px; font-size:12.8px; color:#33506e; margin-top:16px; }
-  .hidden { display:none; }
-  .foot { margin-top:26px; color:#9aa6af; font-size:11.5px; text-align:center; }
+  :root{
+    --navy:#0B2436; --navy2:#13324A; --orange:#F2792B; --orange2:#f7a76a;
+    --ink:#1a2531; --muted:#5a6b78; --faint:#8a99a5; --line:#e3e8ec; --bg:#eef2f5; --card:#ffffff;
+    --ok:#1a8a52; --okbg:#e7f6ee; --okline:#c7e8d4;
+    --bad:#c0392b; --badbg:#fdecea; --badline:#f5cfc9;
+    --warn:#b7791f; --warnbg:#fdf3e2; --warnline:#f1dcb3;
+    --disp:'Space Grotesk',-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --body:'Inter',-apple-system,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--body);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;overflow:hidden;background:
+      radial-gradient(1200px 400px at 80% -40%, rgba(242,121,43,.22), transparent 60%),
+      linear-gradient(160deg,#0B2436 0%,#13324A 100%);color:#fff;}
+  .hero::before{content:"";position:absolute;inset:0;opacity:.14;
+      background-image:linear-gradient(#ffffff22 1px,transparent 1px),linear-gradient(90deg,#ffffff22 1px,transparent 1px);
+      background-size:46px 46px;mask-image:radial-gradient(900px 300px at 70% 0%,#000,transparent 75%);}
+  .hero .inner{position:relative;max-width:1060px;margin:0 auto;padding:22px 22px 40px;}
+  .brandrow{display:flex;align-items:center;gap:13px;}
+  .mark{width:42px;height:42px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));}
+  .wm{font-family:var(--disp);font-weight:700;letter-spacing:1.3px;font-size:21px;line-height:1;}
+  .wm .o{color:var(--orange);}
+  .tag{font-size:11px;letter-spacing:1.6px;color:#9fb3c2;text-transform:uppercase;margin-top:3px;}
+  .badge{margin-left:auto;font-size:11px;font-weight:600;letter-spacing:.5px;color:#cfe0ee;
+      border:1px solid #2d4d66;background:#ffffff0d;padding:6px 12px;border-radius:999px;}
+  .headline{margin:30px 0 0;font-family:var(--disp);font-weight:700;font-size:34px;line-height:1.1;max-width:720px;}
+  .headline .o{color:var(--orange);}
+  .lede{margin:14px 0 0;color:#b9cad6;font-size:15px;line-height:1.55;max-width:680px;}
+  .trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
+  .trust span{font-size:12px;color:#cfe0ee;background:#ffffff10;border:1px solid #2d4d66;border-radius:999px;padding:6px 13px;display:inline-flex;gap:7px;align-items:center;}
+  .trust span b{color:var(--orange);font-weight:700;}
+
+  /* ---------- BODY ---------- */
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px 72px;}
+  .uploadcard{background:var(--card);border:1px solid var(--line);border-radius:18px;
+      box-shadow:0 18px 40px -24px rgba(11,36,54,.5);padding:8px;margin-top:-26px;position:relative;z-index:2;}
+  .drop{display:block;border:2px dashed #c2cfd8;border-radius:13px;background:#fbfdfe;padding:30px 24px;text-align:center;cursor:pointer;transition:.15s;}
+  .drop:hover{border-color:var(--orange);background:#fff8f3;}
+  .drop input{display:none;}
+  .drop .ic{width:40px;height:40px;margin:0 auto 10px;color:var(--orange);}
+  .drop b{color:var(--navy);font-size:15px;font-family:var(--disp);}
+  .drop .hint{color:var(--muted);font-size:13px;margin-top:5px;}
+  .drop #fname{display:inline-block;margin-top:9px;font-size:12.5px;color:var(--faint);}
+
+  .err{background:var(--badbg);border:1px solid var(--badline);color:#a5342a;border-radius:11px;padding:12px 15px;font-size:13px;margin-top:16px;}
+  .hidden{display:none;}
+
+  .resbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:30px 0 4px;flex-wrap:wrap;}
+  .resbar h2{font-family:var(--disp);font-size:19px;color:var(--navy);margin:0;}
+  .dlbtn{background:var(--orange);color:#fff;border:none;border-radius:11px;padding:12px 20px;font-size:14px;font-weight:700;
+      cursor:pointer;box-shadow:0 6px 16px -6px rgba(242,121,43,.65);display:inline-flex;align-items:center;gap:8px;transition:.15s;}
+  .dlbtn:hover{background:#dd6a1f;transform:translateY(-1px);}
+  .dlbtn svg{width:16px;height:16px;}
+
+  /* gauge + tiles */
+  .scoregrid{display:grid;grid-template-columns:230px 1fr;gap:16px;margin-top:14px;}
+  @media(max-width:760px){.scoregrid{grid-template-columns:1fr;}}
+  .gauge{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 10px 30px -26px rgba(11,36,54,.5);}
+  .gauge svg{width:150px;height:150px;}
+  .gauge .gl{margin-top:12px;font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);text-align:center;}
+  .gperc{font-family:var(--disp);font-weight:700;}
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media(max-width:460px){.tiles{grid-template-columns:1fr;}}
+  .tile{border-radius:14px;padding:16px 16px 14px;border:1px solid var(--line);background:var(--card);position:relative;overflow:hidden;}
+  .tile .tic{position:absolute;top:13px;right:13px;width:20px;height:20px;opacity:.8;}
+  .tile .v{font-family:var(--disp);font-size:30px;font-weight:700;line-height:1;}
+  .tile .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;margin-top:9px;color:var(--muted);}
+  .tile.ok{background:var(--okbg);border-color:var(--okline);} .tile.ok .v{color:var(--ok);} .tile.ok .tic{color:var(--ok);}
+  .tile.bad{background:var(--badbg);border-color:var(--badline);} .tile.bad .v{color:var(--bad);} .tile.bad .tic{color:var(--bad);}
+  .tile.warn{background:var(--warnbg);border-color:var(--warnline);} .tile.warn .v{color:var(--warn);} .tile.warn .tic{color:var(--warn);}
+  .tile.nav{background:#eaf0f5;border-color:#d6e0e8;} .tile.nav .v{color:var(--navy);} .tile.nav .tic{color:var(--navy);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-top:18px;border-top:4px solid var(--navy);box-shadow:0 10px 30px -28px rgba(11,36,54,.5);}
+  .card.risk{border-top-color:var(--bad);} .card.rev{border-top-color:var(--warn);}
+  .card h3{margin:0 0 4px;font-family:var(--disp);font-size:15.5px;color:var(--navy);display:flex;align-items:center;gap:9px;}
+  .card h3 .dot{width:9px;height:9px;border-radius:50%;}
+  .card.risk h3 .dot{background:var(--bad);} .card.rev h3 .dot{background:var(--warn);}
+  .pill{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:700;margin-left:auto;}
+  .pill.bad{background:var(--badbg);color:var(--bad);} .pill.warn{background:var(--warnbg);color:var(--warn);}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#f7fafc;}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;}
+  .fname{font-weight:600;color:var(--ink);}
+  .bandtag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#eaf0f5;color:var(--navy);}
+  .reason{color:var(--warn);font-size:12.5px;}
+  .emptyrow{color:var(--muted);font-size:13px;margin:8px 2px 2px;}
+
+  .note{background:#eaf1fb;border:1px solid #cfe0f8;border-radius:12px;padding:13px 16px;font-size:13px;color:#33506e;margin-top:18px;line-height:1.5;}
+  .note b{color:var(--navy);}
+  .legend{margin-top:18px;}
+  .legend .lt{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin-bottom:9px;}
+  .legend .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--muted);}
+  .chip b{color:var(--navy);font-family:var(--disp);}
+
+  .foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);color:var(--faint);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .foot a{color:var(--muted);text-decoration:none;}
 </style>
 </head>
 <body>
-  <div class="topbar"><div class="inner">
-    <svg class="mark" viewBox="0 0 100 100"><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="none" stroke="#F2792B" stroke-width="6"/><polygon points="56,20 34,54 48,54 44,80 68,42 53,42" fill="#F2792B"/></svg>
-    <div><div class="wm">VOLT<span class="o">IQ</span></div><div class="tag">NERC Band A Compliance Audit</div></div>
+  <!-- HERO -->
+  <div class="hero"><div class="inner">
+    <div class="brandrow">
+      <svg class="mark" viewBox="0 0 100 100"><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="none" stroke="#F2792B" stroke-width="6"/><polygon points="56,20 34,54 48,54 44,80 68,42 53,42" fill="#F2792B"/></svg>
+      <div><div class="wm">VOLT<span class="o">IQ</span></div><div class="tag">NERC Band A Compliance Audit</div></div>
+      <span class="badge">● Honest-by-design</span>
+    </div>
+    <h1 class="headline">Prove your Band&nbsp;A feeders meet the <span class="o">20-hour</span> supply mandate.</h1>
+    <p class="lede">Upload a NERC Availability Template. VoltIQ measures supply hours against each band's requirement, flags sanction-risk feeders, separates genuine grid faults from unreadable data — and never scores a row it can't verify.</p>
+    <div class="trust">
+      <span><b>✓</b> Quarantines bad data instead of guessing</span>
+      <span><b>✓</b> Audits in your browser — nothing uploaded</span>
+      <span><b>✓</b> One-click Excel evidence pack</span>
+    </div>
   </div></div>
-  <div class="accent"></div>
 
   <div class="wrap">
-    <h1>Feeder Availability &amp; NERC Compliance</h1>
-    <p class="sub">Upload a NERC Availability Template. VoltIQ audits Band A supply hours, flags sanction-risk feeders, and separates grid faults from data it cannot trust — it never scores a row it can't verify.</p>
+    <!-- UPLOAD -->
+    <div class="uploadcard">
+      <label class="drop">
+        <input type="file" id="file" accept=".xlsx,.xls">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+        <div><b>Choose a NERC Availability Template</b></div>
+        <div class="hint">.xlsx — the monthly feeder availability sheet</div>
+        <span id="fname">No file selected</span>
+      </label>
+    </div>
 
-    <label class="drop">
-      <input type="file" id="file" accept=".xlsx,.xls">
-      <div><b>Choose a NERC Availability Template</b> (.xlsx)</div>
-      <span id="fname">No file selected</span>
-    </label>
-
-    <div id="err" class="note hidden" style="background:#fdecea;border-color:#f5c6c0;color:#a5342a;"></div>
+    <div id="err" class="err hidden"></div>
 
     <div id="results" class="hidden">
       <div class="resbar">
         <h2>Audit results</h2>
-        <button class="dlbtn" id="dl" onclick="exportExcel()">⬇ Download Excel report</button>
+        <button class="dlbtn" id="dl" onclick="exportExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Excel report</button>
       </div>
-      <div class="tiles">
-        <div class="tile nav"><div class="v" id="t-aud">0</div><div class="l">Feeders audited</div></div>
-        <div class="tile ok"><div class="v" id="t-rate">0%</div><div class="l">Compliance rate</div></div>
-        <div class="tile ok"><div class="v" id="t-comp">0</div><div class="l">Complied (≥20h)</div></div>
-        <div class="tile bad"><div class="v" id="t-not">0</div><div class="l">Not complied</div></div>
-        <div class="tile warn"><div class="v" id="t-rev">0</div><div class="l">Needs review</div></div>
+
+      <div class="scoregrid">
+        <div class="gauge">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#e3e8ec" stroke-width="12"/>
+            <circle id="g-ring" cx="60" cy="60" r="52" fill="none" stroke="#1a8a52" stroke-width="12"
+                    stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"
+                    transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .6s ease,stroke .3s;"/>
+            <text id="g-text" x="60" y="60" text-anchor="middle" dominant-baseline="central"
+                  class="gperc" font-size="30" fill="#0B2436">0%</text>
+            <text x="60" y="82" text-anchor="middle" font-size="9.5" fill="#8a99a5" letter-spacing="1">COMPLIANT</text>
+          </svg>
+          <div class="gl">of audited feeders<br>meet their band</div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile nav">
+            <svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            <div class="v" id="t-aud">0</div><div class="l">Feeders audited</div></div>
+          <div class="tile ok">
+            <svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            <div class="v" id="t-comp">0</div><div class="l">Complied (≥20h)</div></div>
+          <div class="tile bad">
+            <svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="v" id="t-not">0</div><div class="l">NERC sanction risk</div></div>
+          <div class="tile warn">
+            <svg class="tic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="v" id="t-rev">0</div><div class="l">Needs review</div></div>
+        </div>
       </div>
 
       <div class="card risk">
-        <h3>NERC sanction risk <span class="pill bad" id="not-count">0</span></h3>
+        <h3><span class="dot"></span>NERC sanction risk <span class="pill bad" id="not-count">0</span></h3>
+        <p class="emptyrow" style="margin:2px 0 0;color:var(--muted);">Audited feeders below their band's required supply hours.</p>
         <table><thead><tr><th>Feeder</th><th>Band</th><th class="r">Hours supplied</th><th class="r">Required</th><th class="r">Fault hours</th></tr></thead><tbody id="not-body"></tbody></table>
-        <div id="not-empty" class="sub" style="margin:6px 0 0;">No non-compliant feeders among audited rows.</div>
+        <div id="not-empty" class="emptyrow">✓ No non-compliant feeders among audited rows.</div>
       </div>
 
       <div class="card rev">
-        <h3>Needs review — not scored <span class="pill warn" id="rev-count">0</span></h3>
-        <p class="sub" style="margin:0 0 8px;">Excluded from the compliance figures because their columns are misaligned or unreadable. VoltIQ flags them for a human instead of guessing.</p>
+        <h3><span class="dot"></span>Needs review — not scored <span class="pill warn" id="rev-count">0</span></h3>
+        <p class="emptyrow" style="margin:2px 0 0;color:var(--muted);">Excluded from the compliance figures because their columns are misaligned or unreadable. VoltIQ flags them for a human instead of guessing.</p>
         <table><thead><tr><th>Feeder</th><th>Band</th><th>Reason</th></tr></thead><tbody id="rev-body"></tbody></table>
       </div>
 
       <div class="note">VoltIQ audits only rows it can verify and quarantines the rest. The compliance figures reflect the <b id="n-aud">0</b> clean feeders, not the <b id="n-total">0</b> rows in the sheet — an honest number you can take to NERC.</div>
+
+      <div class="legend">
+        <div class="lt">Fault codes recognised</div>
+        <div class="chips">
+          <span class="chip"><b>F/O</b> Feeder Off</span>
+          <span class="chip"><b>O/C</b> Over Current</span>
+          <span class="chip"><b>E/F</b> Earth Fault</span>
+          <span class="chip"><b>OC/EF</b> O.C. / Earth Fault</span>
+          <span class="chip"><b>INST O/C</b> Instantaneous O.C.</span>
+          <span class="chip"><b>P/O</b> Partial Outage</span>
+          <span class="chip"><b>O/S</b> Out of Service</span>
+          <span class="chip"><b>LOSS</b> Line Loss</span>
+        </div>
+      </div>
     </div>
 
-    <div class="foot">VoltIQ Africa · NERC Compliance module</div>
+    <div class="foot">
+      <span>VoltIQ Africa · NERC Band A Compliance module</span>
+      <a href="index.html">← Back to VoltIQ</a>
+    </div>
   </div>
 
 <script>
@@ -135,11 +250,18 @@ function analyzeNerc(rows){
   return {total:auditedN+review.length,audited:auditedN,complied,notComplied,review,auditedRows:audited,rate:auditedN?Math.round(100*complied/auditedN):0};
 }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function setGauge(rate){
+  const ring=document.getElementById('g-ring'), txt=document.getElementById('g-text');
+  const C=2*Math.PI*52; // 326.7
+  ring.setAttribute('stroke-dasharray',C.toFixed(1));
+  ring.setAttribute('stroke-dashoffset',(C*(1-rate/100)).toFixed(1));
+  ring.setAttribute('stroke', rate>=90?'#1a8a52':rate>=70?'#b7791f':'#c0392b');
+  txt.textContent=rate+'%';
+}
 function render(o){
   LAST=o;
   document.getElementById('results').classList.remove('hidden');
   document.getElementById('t-aud').textContent=o.audited;
-  document.getElementById('t-rate').textContent=o.rate+'%';
   document.getElementById('t-comp').textContent=o.complied;
   document.getElementById('t-not').textContent=o.notComplied.length;
   document.getElementById('t-rev').textContent=o.review.length;
@@ -148,8 +270,9 @@ function render(o){
   document.getElementById('not-count').textContent=o.notComplied.length;
   document.getElementById('rev-count').textContent=o.review.length;
   document.getElementById('not-empty').style.display=o.notComplied.length?'none':'block';
-  document.getElementById('not-body').innerHTML=o.notComplied.map(f=>`<tr><td>${esc(f.name)}</td><td>${esc(f.band)}</td><td class="r">${f.hours}</td><td class="r">${f.expected}</td><td class="r">${f.faultHours}</td></tr>`).join('');
-  document.getElementById('rev-body').innerHTML=o.review.map(f=>`<tr><td>${esc(f.name||'(unnamed)')}</td><td>${esc(f.band||'?')}</td><td class="reason">${esc(f.reason)}</td></tr>`).join('');
+  document.getElementById('not-body').innerHTML=o.notComplied.map(f=>`<tr><td class="fname">${esc(f.name)}</td><td><span class="bandtag">${esc(f.band)}</span></td><td class="r">${f.hours}</td><td class="r">${f.expected}</td><td class="r">${f.faultHours}</td></tr>`).join('');
+  document.getElementById('rev-body').innerHTML=o.review.map(f=>`<tr><td class="fname">${esc(f.name||'(unnamed)')}</td><td><span class="bandtag">${esc(f.band||'?')}</span></td><td class="reason">${esc(f.reason)}</td></tr>`).join('');
+  setGauge(o.rate);
 }
 function exportExcel(){
   if(!LAST) return;
