@@ -83,6 +83,25 @@
   .tile.warn{background:var(--warnbg);border-color:var(--warnline);} .tile.warn .v{color:var(--warn);} .tile.warn .tic{color:var(--warn);}
   .tile.nav{background:#eaf0f5;border-color:#d6e0e8;} .tile.nav .v{color:var(--navy);} .tile.nav .tic{color:var(--navy);}
 
+  /* assumptions + money */
+  .assume{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;}
+  .assume .af{display:flex;flex-direction:column;gap:6px;}
+  .assume label{font-size:11px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .assume .opt{text-transform:none;letter-spacing:0;color:var(--faint);font-weight:400;}
+  .assume .ig{display:flex;align-items:center;gap:5px;background:#f7fafc;border:1px solid var(--line);border-radius:9px;padding:7px 11px;}
+  .assume .ig>span{color:var(--muted);font-size:14px;} .assume .ig .u{font-size:12px;color:var(--faint);}
+  .assume .ig input{border:none;background:transparent;font-size:15px;font-family:var(--disp);font-weight:600;color:var(--navy);width:82px;outline:none;}
+  .assume .ahint{flex:1;min-width:210px;font-size:12px;color:var(--faint);line-height:1.4;}
+  .mpanel{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#17384f;border-radius:16px;overflow:hidden;margin-top:14px;box-shadow:0 14px 34px -26px rgba(11,36,54,.7);}
+  @media(max-width:640px){.mpanel{grid-template-columns:repeat(2,1fr);}}
+  .mtile{background:linear-gradient(160deg,#0B2436,#13324A);padding:18px 18px 16px;color:#fff;}
+  .mtile .ml{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:#9fb3c2;}
+  .mtile .mv{font-family:var(--disp);font-weight:700;font-size:24px;margin-top:9px;line-height:1.05;}
+  .mtile .ms{font-size:10.5px;color:#7f98a9;margin-top:6px;}
+  .mtile.risk{background:linear-gradient(160deg,#2e1a12,#4a241a);}
+  .mtile.risk .mv{color:#c98b6a;}
+  .mtile.risk.lit{background:linear-gradient(160deg,#6a1f12,#8a2a18);} .mtile.risk.lit .mv{color:#ff9d6b;}
+  .card.money{border-top-color:var(--orange);}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-top:18px;border-top:4px solid var(--navy);box-shadow:0 10px 30px -28px rgba(11,36,54,.5);}
   .card.risk{border-top-color:var(--bad);} .card.rev{border-top-color:var(--warn);}
   .card h3{margin:0 0 4px;font-family:var(--disp);font-size:15.5px;color:var(--navy);display:flex;align-items:center;gap:9px;}
@@ -180,6 +199,25 @@
         </div>
       </div>
 
+      <div class="assume">
+        <div class="af"><label>Band A tariff</label><div class="ig"><span>₦</span><input id="tariff" type="number" value="209.5" step="0.5" min="0"><span class="u">/kWh</span></div></div>
+        <div class="af"><label>Collection efficiency <span class="opt">(optional)</span></label><div class="ig"><input id="ceff" type="number" placeholder="—" min="0" max="100"><span class="u">%</span></div></div>
+        <div class="ahint">Energy is valued for audited feeders only. Enter your collection efficiency — the share of delivered energy you actually bill and collect — to estimate monthly revenue at risk.</div>
+      </div>
+
+      <div class="mpanel">
+        <div class="mtile"><div class="ml">Energy supplied today</div><div class="mv" id="m-mwh">0 MWh</div><div class="ms">across audited feeders</div></div>
+        <div class="mtile"><div class="ml">Value delivered</div><div class="mv" id="m-day">₦0</div><div class="ms">per day, at tariff</div></div>
+        <div class="mtile"><div class="ml">Projected monthly</div><div class="mv" id="m-mon">₦0</div><div class="ms">delivered value · ×30 days</div></div>
+        <div class="mtile risk" id="m-risk-tile"><div class="ml">Est. revenue at risk</div><div class="mv" id="m-risk">—</div><div class="ms" id="m-risk-sub">supply billing to activate</div></div>
+      </div>
+
+      <div class="card money">
+        <h3><span class="dot" style="background:var(--orange)"></span>Energy &amp; revenue by feeder</h3>
+        <p class="emptyrow" style="margin:2px 0 0;color:var(--muted);">Energy delivered and its value for each audited feeder. The “At risk” column fills in once collection efficiency is set.</p>
+        <table><thead><tr><th>Feeder</th><th>Band</th><th class="r">Hours</th><th class="r">Energy (MWh)</th><th class="r">Value / day</th><th class="r">At risk / day</th></tr></thead><tbody id="money-body"></tbody></table>
+      </div>
+
       <div class="card risk">
         <h3><span class="dot"></span>NERC sanction risk <span class="pill bad" id="not-count">0</span></h3>
         <p class="emptyrow" style="margin:2px 0 0;color:var(--muted);">Audited feeders below their band's required supply hours.</p>
@@ -239,15 +277,16 @@ function analyzeNerc(rows){
     const remarkStr=String(iRem>=0?(row[iRem]==null?'':row[iRem]):'').trim();
     const remarkIsStatus=/^(complied|not complied)$/i.test(remarkStr)||remarkStr==='';
     const validBand=BAND_EXPECTED.hasOwnProperty(band);
-    let hours=0,faults=0,bad=0;
-    for(let c=hs;c<=he;c++){ const cell=cleanCell(row[c]); if(cell.bad)bad++; if(cell.fault)faults++; if(cell.mw>0)hours++; }
+    let hours=0,faults=0,bad=0,energy=0;
+    for(let c=hs;c<=he;c++){ const cell=cleanCell(row[c]); if(cell.bad)bad++; if(cell.fault)faults++; if(cell.mw>0){hours++; energy+=cell.mw;} }
     if(!validBand||!remarkIsStatus||bad>0){ review.push({name,band,reason:!validBand?'band missing/invalid':(!remarkIsStatus?'columns appear shifted':'unreadable / broken cells')}); continue; }
     const exp=BAND_EXPECTED[band]; const ok=hours>=exp; if(ok)complied++;
-    const rec={name,band,hours,expected:exp,faultHours:faults,status:ok?'Complied':'Not Complied'};
+    const rec={name,band,hours,expected:exp,faultHours:faults,energy,status:ok?'Complied':'Not Complied'};
     audited.push(rec); if(!ok)notComplied.push(rec);
   }
   const auditedN=audited.length;
-  return {total:auditedN+review.length,audited:auditedN,complied,notComplied,review,auditedRows:audited,rate:auditedN?Math.round(100*complied/auditedN):0};
+  const totalEnergy=audited.reduce((s,f)=>s+f.energy,0);
+  return {total:auditedN+review.length,audited:auditedN,complied,notComplied,review,auditedRows:audited,totalEnergy,rate:auditedN?Math.round(100*complied/auditedN):0};
 }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function setGauge(rate){
@@ -273,17 +312,53 @@ function render(o){
   document.getElementById('not-body').innerHTML=o.notComplied.map(f=>`<tr><td class="fname">${esc(f.name)}</td><td><span class="bandtag">${esc(f.band)}</span></td><td class="r">${f.hours}</td><td class="r">${f.expected}</td><td class="r">${f.faultHours}</td></tr>`).join('');
   document.getElementById('rev-body').innerHTML=o.review.map(f=>`<tr><td class="fname">${esc(f.name||'(unnamed)')}</td><td><span class="bandtag">${esc(f.band||'?')}</span></td><td class="reason">${esc(f.reason)}</td></tr>`).join('');
   setGauge(o.rate);
+  recomputeMoney();
+}
+function fmtN(n){ return '₦'+Math.round(n).toLocaleString('en-NG'); }
+function fmtBig(n){ if(n>=1e9)return '₦'+(n/1e9).toFixed(2)+'bn'; if(n>=1e6)return '₦'+(n/1e6).toFixed(2)+'m'; return fmtN(n); }
+function recomputeMoney(){
+  if(!LAST) return;
+  const tariff=parseFloat(document.getElementById('tariff').value)||0;
+  const effRaw=document.getElementById('ceff').value.trim();
+  const eff=effRaw===''?null:Math.max(0,Math.min(100,parseFloat(effRaw)));
+  const mwh=LAST.totalEnergy||0; const valDay=mwh*1000*tariff;
+  document.getElementById('m-mwh').textContent=mwh.toFixed(1)+' MWh';
+  document.getElementById('m-day').textContent=fmtBig(valDay);
+  document.getElementById('m-mon').textContent=fmtBig(valDay*30);
+  const tile=document.getElementById('m-risk-tile');
+  if(eff===null||isNaN(eff)){
+    document.getElementById('m-risk').textContent='—';
+    document.getElementById('m-risk-sub').textContent='supply billing to activate';
+    tile.classList.remove('lit');
+  }else{
+    document.getElementById('m-risk').textContent=fmtBig(valDay*(1-eff/100)*30);
+    document.getElementById('m-risk-sub').textContent=eff+'% collected · monthly exposure';
+    tile.classList.add('lit');
+  }
+  document.getElementById('money-body').innerHTML=LAST.auditedRows.map(f=>{
+    const v=f.energy*1000*tariff;
+    const risk=(eff===null||isNaN(eff))?'<span style="color:#b9c2c9">—</span>':fmtN(v*(1-eff/100));
+    return `<tr><td class="fname">${esc(f.name)}</td><td><span class="bandtag">${esc(f.band)}</span></td><td class="r">${f.hours}</td><td class="r">${f.energy.toFixed(1)}</td><td class="r">${fmtN(v)}</td><td class="r">${risk}</td></tr>`;
+  }).join('');
 }
 function exportExcel(){
   if(!LAST) return;
+  const tariff=parseFloat(document.getElementById('tariff').value)||0;
+  const effRaw=document.getElementById('ceff').value.trim();
+  const eff=effRaw===''?null:Math.max(0,Math.min(100,parseFloat(effRaw)));
+  const valDay=(LAST.totalEnergy||0)*1000*tariff;
   const wb=XLSX.utils.book_new();
   const summary=[['VoltIQ Africa — NERC Band A Compliance Audit'],['Generated',new Date().toLocaleString()],[],
     ['Feeders audited',LAST.audited],['Complied (>=20h)',LAST.complied],['Not complied',LAST.notComplied.length],
     ['Needs review (not scored)',LAST.review.length],['Compliance rate',LAST.rate+'%'],[],
-    ['Note','Figures reflect only verified feeders. Rows needing review are excluded, not scored.']];
+    ['Band A tariff (NGN/kWh)',tariff],['Energy supplied (MWh/day)',+(LAST.totalEnergy||0).toFixed(1)],
+    ['Value delivered (NGN/day)',Math.round(valDay)],['Projected monthly value (NGN)',Math.round(valDay*30)],
+    ['Collection efficiency (%)',eff===null||isNaN(eff)?'not supplied':eff],
+    ['Est. revenue at risk (NGN/month)',eff===null||isNaN(eff)?'supply billing to compute':Math.round(valDay*(1-eff/100)*30)],[],
+    ['Note','Figures reflect only verified feeders. Rows needing review are excluded, not scored. Energy value is an estimate from hourly MW readings.']];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Summary');
-  const comp=[['Feeder','Band','Hours Supplied','Required','Status','Fault Hours']];
-  LAST.auditedRows.forEach(f=>comp.push([f.name,f.band,f.hours,f.expected,f.status,f.faultHours]));
+  const comp=[['Feeder','Band','Hours Supplied','Required','Status','Fault Hours','Energy MWh/day','Value NGN/day']];
+  LAST.auditedRows.forEach(f=>comp.push([f.name,f.band,f.hours,f.expected,f.status,f.faultHours,+f.energy.toFixed(1),Math.round(f.energy*1000*tariff)]));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(comp),'Compliance');
   const rev=[['Feeder','Band','Reason']];
   LAST.review.forEach(f=>rev.push([f.name,f.band,f.reason]));
@@ -301,6 +376,7 @@ document.getElementById('file').addEventListener('change',async e=>{
     render(analyzeNerc(rows));
   }catch(ex){ err.textContent='Could not process file: '+ex.message; err.classList.remove('hidden'); document.getElementById('results').classList.add('hidden'); }
 });
+['tariff','ceff'].forEach(id=>document.getElementById(id).addEventListener('input',recomputeMoney));
 </script>
 </body>
 </html>
