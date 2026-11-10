@@ -202,7 +202,7 @@
       <div class="assume">
         <div id="tariffs" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;"></div>
         <div class="af"><label>Collection efficiency <span class="opt">(optional)</span></label><div class="ig"><input id="ceff" type="number" placeholder="—" min="0" max="100"><span class="u">%</span></div></div>
-        <div class="ahint">A tariff field is shown for each band found in this sheet — all editable. Every feeder's energy is valued at its own band's rate. Enter collection efficiency (the share you actually bill and collect) to estimate revenue at risk.</div>
+        <div class="ahint">All five band tariffs are shown and editable; bands with no feeders in this sheet are tagged accordingly and don't affect the totals. Every feeder's energy is valued at its own band's rate. Enter collection efficiency (the share you actually bill and collect) to estimate revenue at risk.</div>
       </div>
 
       <div class="mpanel">
@@ -261,9 +261,10 @@ let LAST = null;
 const TARIFF_DEFAULTS={A:209.5,B:68,C:55,D:44,E:34};
 const TARIFF_STATE={};
 function tariffFor(b){ return TARIFF_STATE[b]!=null?TARIFF_STATE[b]:(TARIFF_DEFAULTS[b]!=null?TARIFF_DEFAULTS[b]:0); }
-function buildTariffInputs(bands){
+function buildTariffInputs(bands,present){
   const host=document.getElementById('tariffs');
-  host.innerHTML=bands.map(b=>{const val=tariffFor(b);return `<div class="af"><label>Band ${esc(b)} tariff</label><div class="ig"><span>₦</span><input class="tf" data-band="${esc(b)}" type="number" value="${val}" step="0.5" min="0"><span class="u">/kWh</span></div></div>`;}).join('');
+  host.innerHTML=bands.map(b=>{const val=tariffFor(b);const inSheet=present&&present.has(b);
+    return `<div class="af"><label>Band ${esc(b)} tariff${inSheet?'':' <span class="opt">· none in sheet</span>'}</label><div class="ig"><span>₦</span><input class="tf" data-band="${esc(b)}" type="number" value="${val}" step="0.5" min="0"><span class="u">/kWh</span></div></div>`;}).join('');
   host.querySelectorAll('input.tf').forEach(inp=>inp.addEventListener('input',e=>{TARIFF_STATE[e.target.dataset.band]=parseFloat(e.target.value)||0;recomputeMoney();}));
 }
 function cleanCell(v){ if(v==null||v==='')return{mw:0,fault:null,bad:false}; if(typeof v==='number')return{mw:v,fault:null,bad:false};
@@ -320,8 +321,8 @@ function render(o){
   document.getElementById('not-body').innerHTML=o.notComplied.map(f=>`<tr><td class="fname">${esc(f.name)}</td><td><span class="bandtag">${esc(f.band)}</span></td><td class="r">${f.hours}</td><td class="r">${f.expected}</td><td class="r">${f.faultHours}</td></tr>`).join('');
   document.getElementById('rev-body').innerHTML=o.review.map(f=>`<tr><td class="fname">${esc(f.name||'(unnamed)')}</td><td><span class="bandtag">${esc(f.band||'?')}</span></td><td class="reason">${esc(f.reason)}</td></tr>`).join('');
   setGauge(o.rate);
-  const bands=[...new Set(o.auditedRows.map(f=>f.band))].sort();
-  buildTariffInputs(bands);
+  const present=new Set(o.auditedRows.map(f=>f.band));
+  buildTariffInputs(['A','B','C','D','E'],present);
   recomputeMoney();
 }
 function fmtN(n){ return '₦'+Math.round(n).toLocaleString('en-NG'); }
