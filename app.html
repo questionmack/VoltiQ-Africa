@@ -973,6 +973,8 @@
       <!-- Nav links -->
       <a href="national-dashboard.html" target="_blank" class="nav-link">🌍 NATIONAL DASHBOARD</a>
       <a href="nerc.html" target="_blank" class="nav-link">📋 NERC COMPLIANCE</a>
+      <a href="ghostload.html" target="_blank" class="nav-link">⚡ GHOST-LOAD</a>
+      <a href="#" class="nav-link" onclick="openVoltIQSweep();return false;">📲 DISPATCH SWEEP</a>
       <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
     </div>
   </header>
@@ -4769,6 +4771,71 @@ function startSessionTimer() {
     if (el) el.textContent = `${h}:${m}:${s}`;
   }, 1000);
 }
+</script>
+
+<!-- ══ VoltIQ Field-Sweep Dispatch (injected) ══ -->
+<div id="vqSweepModal" style="display:none;position:fixed;inset:0;background:rgba(3,10,17,.82);z-index:99999;align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="background:linear-gradient(165deg,#0b2131,#081826);border:1px solid #1c4157;border-radius:14px;padding:20px;max-width:430px;width:100%;color:#e4eef4;box-shadow:0 30px 70px -24px #000;max-height:92vh;overflow:auto;">
+    <h3 style="margin:0 0 3px;font-size:16px;color:#eef7fb;letter-spacing:.3px;">⚡ Dispatch Field Sweep</h3>
+    <div style="font-size:11.5px;color:#7d97a8;margin-bottom:8px;">Enter the flagged transformer (or paste from the Ghost-Load report), then send the engineer a WhatsApp link.</div>
+    <label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">DT ID *</label>
+    <input id="vqDt" type="text" placeholder="e.g. DT-402" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;">
+    <label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">Feeder</label>
+    <input id="vqFeed" type="text" placeholder="e.g. Unguwan Rimi 11kV" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;">
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">Unaccounted kWh/mo</label><input id="vqKwh" type="number" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;"></div>
+      <div style="flex:1;"><label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">Est. ₦/mo at risk</label><input id="vqNgn" type="number" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">GPS lat <span style="color:#5c7688;">(opt)</span></label><input id="vqLat" type="number" step="any" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;"></div>
+      <div style="flex:1;"><label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">GPS lng <span style="color:#5c7688;">(opt)</span></label><input id="vqLng" type="number" step="any" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;"></div>
+    </div>
+    <label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">Field engineer name</label>
+    <input id="vqTechName" type="text" placeholder="e.g. Musa Ibrahim" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;">
+    <label style="display:block;font-size:11.5px;color:#8aa2b2;margin:10px 0 5px;">WhatsApp number <span style="color:#5c7688;">(with country code)</span></label>
+    <input id="vqTechPhone" type="text" placeholder="2348012345678" style="width:100%;padding:10px;border-radius:8px;border:1px solid #244b63;background:#0a1f2f;color:#fff;box-sizing:border-box;font-size:14px;">
+    <div id="vqSweepResult" style="display:none;margin-top:14px;padding:12px;background:#0a1f2f;border:1px solid #16344a;border-radius:9px;font-size:13px;"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button id="vqSweepGo" onclick="vqSweepDispatch()" style="flex:1;background:linear-gradient(180deg,#36dcf4,#17aecf);color:#042029;font-weight:800;border:none;padding:12px;border-radius:9px;cursor:pointer;font-size:13px;">Generate sweep link</button>
+      <button onclick="document.getElementById('vqSweepModal').style.display='none'" style="background:#16344a;color:#cfe3ee;border:none;padding:12px 16px;border-radius:9px;cursor:pointer;font-size:13px;">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+  const VQ_SWEEP_API = (typeof WORKER_BASE_URL !== 'undefined') ? WORKER_BASE_URL : 'https://voltiq-api.momolistic2008.workers.dev';
+  function openVoltIQSweep(dtId, feederName, kwh, ngn, lat, lng) {
+    document.getElementById('vqDt').value = dtId || '';
+    document.getElementById('vqFeed').value = feederName || '';
+    document.getElementById('vqKwh').value = (kwh != null) ? kwh : '';
+    document.getElementById('vqNgn').value = (ngn != null) ? ngn : '';
+    document.getElementById('vqLat').value = (lat != null) ? lat : '';
+    document.getElementById('vqLng').value = (lng != null) ? lng : '';
+    document.getElementById('vqSweepResult').style.display = 'none';
+    document.getElementById('vqSweepModal').style.display = 'flex';
+  }
+  async function vqSweepDispatch() {
+    const token = sessionStorage.getItem('voltiq_token');
+    if (!token) { alert('Please log in again — session expired.'); return; }
+    const dtId = document.getElementById('vqDt').value.trim();
+    if (!dtId) { alert('Enter the DT ID.'); return; }
+    const n = id => { const v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); };
+    const btn = document.getElementById('vqSweepGo'); btn.disabled = true; btn.textContent = 'Generating…';
+    try {
+      const res = await fetch(VQ_SWEEP_API + '/sweep/dispatch', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ dtId, feederName: document.getElementById('vqFeed').value.trim(),
+          unaccountedKwh: n('vqKwh'), estimatedLossNgn: n('vqNgn'), gpsLat: n('vqLat'), gpsLng: n('vqLng'),
+          technicianName: document.getElementById('vqTechName').value.trim(),
+          technicianPhone: document.getElementById('vqTechPhone').value.trim().replace(/[^0-9]/g, '') })
+      });
+      const d = await res.json(); btn.disabled = false; btn.textContent = 'Generate sweep link';
+      if (!res.ok) { alert(d.error || 'Could not create sweep.'); return; }
+      const box = document.getElementById('vqSweepResult'); box.style.display = 'block';
+      box.innerHTML = '<div style="color:#2fcf86;font-weight:700;margin-bottom:8px;">✓ Sweep link ready</div>' +
+        '<a href="' + d.waShareUrl + '" target="_blank" rel="noopener" style="display:inline-block;background:#25D366;color:#042914;font-weight:700;padding:9px 13px;border-radius:7px;text-decoration:none;margin-bottom:8px;">📲 Open in WhatsApp &amp; send</a>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;"><input readonly value="' + d.sweepLink + '" onclick="this.select()" style="flex:1;padding:8px;border-radius:7px;border:1px solid #244b63;background:#071826;color:#9fb6c8;font-size:12px;"><button onclick="navigator.clipboard.writeText(\'' + d.sweepLink + '\');this.textContent=\'Copied\'" style="background:#16344a;color:#cfe3ee;border:none;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:12px;">Copy</button></div>';
+    } catch (e) { btn.disabled = false; btn.textContent = 'Generate sweep link'; alert('Network error — try again.'); }
+  }
 </script>
 </body>
 </html>
