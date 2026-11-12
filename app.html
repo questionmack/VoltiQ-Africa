@@ -975,6 +975,7 @@
       <a href="nerc.html" target="_blank" class="nav-link">📋 NERC COMPLIANCE</a>
       <a href="ghostload.html" target="_blank" class="nav-link">⚡ GHOST-LOAD</a>
       <a href="#" class="nav-link" onclick="openVoltIQSweep();return false;">📲 DISPATCH SWEEP</a>
+      <a href="#" class="nav-link" onclick="openVoltIQRoi();return false;">📊 PILOT ROI</a>
       <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
     </div>
   </header>
@@ -4835,6 +4836,66 @@ function startSessionTimer() {
         '<a href="' + d.waShareUrl + '" target="_blank" rel="noopener" style="display:inline-block;background:#25D366;color:#042914;font-weight:700;padding:9px 13px;border-radius:7px;text-decoration:none;margin-bottom:8px;">📲 Open in WhatsApp &amp; send</a>' +
         '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;"><input readonly value="' + d.sweepLink + '" onclick="this.select()" style="flex:1;padding:8px;border-radius:7px;border:1px solid #244b63;background:#071826;color:#9fb6c8;font-size:12px;"><button onclick="navigator.clipboard.writeText(\'' + d.sweepLink + '\');this.textContent=\'Copied\'" style="background:#16344a;color:#cfe3ee;border:none;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:12px;">Copy</button></div>';
     } catch (e) { btn.disabled = false; btn.textContent = 'Generate sweep link'; alert('Network error — try again.'); }
+  }
+</script>
+
+<!-- ══ VoltIQ Pilot ROI panel (injected) ══ -->
+<div id="vqRoiModal" style="display:none;position:fixed;inset:0;background:rgba(3,10,17,.82);z-index:99999;align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="background:linear-gradient(165deg,#0b2131,#081826);border:1px solid #1c4157;border-radius:14px;padding:20px;max-width:560px;width:100%;color:#e4eef4;box-shadow:0 30px 70px -24px #000;max-height:92vh;overflow:auto;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><h3 style="margin:0;font-size:16px;color:#eef7fb;letter-spacing:.3px;">📊 Field Sweeps &amp; Pilot ROI</h3>
+      <button onclick="loadVoltIQRoi()" style="margin-left:auto;background:#0a1f2f;color:#2fd4ee;border:1px solid #1c5568;padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px;">↻ Refresh</button></div>
+    <div id="vqRoiBody" style="font-size:13px;color:#9fb6c8;padding:8px 0;">Loading…</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+      <button onclick="document.getElementById('vqRoiModal').style.display='none'" style="background:#16344a;color:#cfe3ee;border:none;padding:10px 18px;border-radius:9px;cursor:pointer;font-size:13px;">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+  function openVoltIQRoi() { document.getElementById('vqRoiModal').style.display = 'flex'; loadVoltIQRoi(); }
+  function vqRoiTile(label, val, color) {
+    return '<div style="background:#0a1f2f;border:1px solid #16344a;border-radius:11px;padding:13px 14px;">' +
+      '<div style="font-family:monospace;font-size:20px;font-weight:700;color:' + (color || '#eaf6fb') + ';">' + val + '</div>' +
+      '<div style="font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;color:#7d97a8;margin-top:5px;">' + label + '</div></div>';
+  }
+  async function loadVoltIQRoi() {
+    const token = sessionStorage.getItem('voltiq_token');
+    const body = document.getElementById('vqRoiBody');
+    if (!token) { body.innerHTML = 'Please log in again — session expired.'; return; }
+    body.innerHTML = 'Loading…';
+    try {
+      const [roiR, listR] = await Promise.all([
+        fetch(VQ_SWEEP_API + '/sweep/roi', { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch(VQ_SWEEP_API + '/sweep/list', { headers: { 'Authorization': 'Bearer ' + token } })
+      ]);
+      const roi = await roiR.json();
+      if (!roiR.ok) { body.innerHTML = roi.error || 'Could not load ROI.'; return; }
+      const list = await listR.json();
+      const ngn = v => '₦' + Math.round(v || 0).toLocaleString();
+      const tiles = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 12px;">' +
+        vqRoiTile('Sweeps dispatched', roi.dispatched) +
+        vqRoiTile('Sweeps verified', roi.sweepsVerified) +
+        vqRoiTile('Flagged — estimate', ngn(roi.flaggedRevenueNgn), '#f5b041') +
+        vqRoiTile('Field-confirmed recovered', ngn(roi.fieldConfirmedRecoveredNgn), '#2fcf86') +
+        '</div>' +
+        '<div style="display:flex;gap:16px;font-size:11.5px;color:#8aa2b2;margin-bottom:12px;"><span>Confirmed sites: <b style="color:#e4eef4;">' + roi.confirmedSites + '</b></span><span>Premises found: <b style="color:#e4eef4;">' + roi.premisesFound + '</b></span><span>Recovered: <b style="color:#e4eef4;">' + Math.round(roi.fieldConfirmedRecoveredKwh || 0).toLocaleString() + ' kWh</b></span></div>';
+      const note = '<div style="background:rgba(47,212,238,.06);border:1px solid #16445a;border-radius:9px;padding:10px 13px;font-size:12px;color:#9fc4d4;line-height:1.5;margin-bottom:14px;">' + (roi.note || '') + '</div>';
+      const map = { suspected_direct_connection: 'Direct connection', suspected_meter_bypass: 'Meter bypass', suspected_unbilled: 'Unbilled / wrong tariff', no_issue_found: 'No issue' };
+      let rows = '';
+      const vs = (list && list.verifications) ? list.verifications : [];
+      if (vs.length) {
+        rows = '<div style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:#7d97a8;margin:4px 0 6px;">Verification log</div>';
+        vs.slice(0, 20).forEach(v => {
+          rows += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #12293a;font-size:12.5px;">' +
+            '<span style="font-family:monospace;color:#cfe3ee;min-width:72px;">' + (v.dtId || '') + '</span>' +
+            '<span style="flex:1;color:' + (v.findingType === 'no_issue_found' ? '#8aa2b2' : '#f5b041') + ';">' + (map[v.findingType] || v.findingType) + '</span>' +
+            '<span style="color:#7d97a8;">' + (v.gpsVerified ? '📍 verified' : 'logged') + '</span>' +
+            '<span style="color:#2fcf86;min-width:80px;text-align:right;">' + (v.recoveredNgn != null ? ngn(v.recoveredNgn) : '—') + '</span></div>';
+        });
+      } else {
+        rows = '<div style="color:#7d97a8;font-size:12.5px;">No field verifications yet. Dispatch a sweep and have the engineer submit a finding — it appears here.</div>';
+      }
+      body.innerHTML = tiles + note + rows;
+    } catch (e) { body.innerHTML = 'Network error — try Refresh.'; }
   }
 </script>
 </body>
