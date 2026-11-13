@@ -333,8 +333,8 @@
     <span class="hcorner" style="top:-1px;left:-1px;border-right:none;border-bottom:none;border-radius:4px 0 0 0;"></span>
     <span class="hcorner tr"></span><span class="hcorner bl"></span>
     <span class="hcorner" style="bottom:-1px;right:-1px;border-left:none;border-top:none;border-radius:0 0 4px 0;"></span>
-    <h2>Give us one feeder. We'll show you what's hiding in it.</h2>
-    <p>A no-cost, no-risk 45-day pilot: one feeder, your historical data, a prioritised findings report in 5–7 business days — compliance evidence and a revenue-at-risk figure your own team verifies.</p>
+    <h2>Give us three feeders. We'll show you what's hiding in them.</h2>
+    <p>A no-cost, no-risk 45-day pilot: up to three feeders, your historical data, a prioritised findings report in 5–7 business days — compliance evidence and a revenue-at-risk figure your own team verifies.</p>
     <a class="btn primary" href="#" onclick="openAudit();return false;">Start a pilot conversation</a>
   </div>
 </div></section>
@@ -397,5 +397,6 @@ async function submitAudit(e){
   }catch(err){alert('Could not send — please email hassanmomoh@voltiqafrica.com');}
   return false;
 }
+try{if(new URLSearchParams(location.search).get('audit')==='1'){openAudit();}}catch(e){}
 </script>
 </body></html>
