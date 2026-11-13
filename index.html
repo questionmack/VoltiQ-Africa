@@ -3,6 +3,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VoltIQ Africa — Smart Grid Intelligence for Nigerian DisCos</title>
 <meta name="description" content="VoltIQ Africa helps Nigerian Distribution Companies recover revenue lost to electricity theft and prove NERC Band A compliance — from data they already have, with nothing installed.">
+<link rel="canonical" href="https://voltiq.africa/">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://voltiq.africa/">
+<meta property="og:title" content="VoltIQ Africa — Smart Grid Intelligence for Nigerian DisCos">
+<meta property="og:description" content="Recover revenue lost to electricity theft and prove NERC Band A compliance — from data you already have, nothing installed.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VoltIQ Africa — Smart Grid Intelligence for Nigerian DisCos">
+<meta name="twitter:description" content="Recover revenue lost to electricity theft and prove NERC Band A compliance.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
@@ -149,13 +158,30 @@
   footer .fcol h5{font-family:var(--disp);color:#cfe3ee;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:0 0 11px;}
   footer .fcol div{margin-bottom:7px;}
   .legal{border-top:1px solid #0e2232;margin-top:30px;padding-top:16px;color:#4e6b7c;font-family:var(--mono);font-size:11px;letter-spacing:.2px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  .mbg{position:fixed;inset:0;background:rgba(3,10,18,.8);backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+  .mbg.open{display:flex;}
+  .modal{background:#0b1f2e;border:1px solid #1d4760;border-radius:16px;max-width:470px;width:100%;padding:30px;box-shadow:0 40px 90px -25px #000;position:relative;max-height:92vh;overflow:auto;}
+  .modal h3{font-family:var(--disp);font-weight:700;font-size:23px;color:#eef7fb;margin:0 0 7px;}
+  .modal .msub{color:#9fb6c6;font-size:13.5px;margin:0 0 18px;line-height:1.55;}
+  .modal label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#8aa6b6;margin:13px 0 6px;}
+  .modal input{width:100%;background:#071621;border:1px solid #1a3f54;border-radius:9px;padding:11px 13px;color:#eaf6fb;font-size:14px;font-family:var(--body);box-sizing:border-box;}
+  .modal input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(47,212,238,.12);}
+  .modal .x{position:absolute;top:15px;right:18px;color:#6f93a8;font-size:24px;line-height:1;cursor:pointer;background:none;border:none;}
+  .modal .submit{margin-top:22px;width:100%;justify-content:center;}
+  .modal .contact{margin-top:16px;font-size:12px;color:#7e9aab;text-align:center;}
+  .modal .ok{display:none;text-align:center;padding:26px 0;}
+  .modal .ok .big{font-family:var(--disp);font-weight:700;font-size:22px;color:var(--green);margin-bottom:10px;}
+  .modal .ok p{color:#9fb6c6;font-size:14px;line-height:1.5;margin:0;}
 </style></head><body>
 
 <nav><div class="in">
   <a class="brand" href="#top"><svg viewBox="0 0 100 100"><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="none" stroke="#2fd4ee" stroke-width="6"/><polygon points="56,20 34,54 48,54 44,80 68,42 53,42" fill="#F2792B"/></svg><b>VOLT<span class="c">IQ</span> <span class="o">AFRICA</span></b></a>
   <div class="links">
     <a href="#what">What it does</a><a href="#why">Why VoltIQ</a><a href="#security">Security</a>
-    <a class="login" href="#pilot">Request a pilot</a>
+    <a href="https://app.voltiqafrica.com" target="_blank" rel="noopener">Client login</a>
+    <a class="login" href="#" onclick="openAudit();return false;">Request a pilot</a>
   </div>
 </div></nav>
 
@@ -167,7 +193,7 @@
       <h1>Recover the revenue your grid is losing — and <span class="c">prove</span> your NERC Band&nbsp;A compliance.</h1>
       <p class="sub">VoltIQ Africa turns the data your Distribution Company already produces into recovered revenue and regulator-ready compliance evidence — nothing installed, and no access to anything live.</p>
       <div class="cta">
-        <a class="btn primary" href="#pilot">Request a 45-day pilot</a>
+        <a class="btn primary" href="#" onclick="openAudit();return false;">Request a 45-day pilot</a>
         <a class="btn ghost" href="#what">How it works →</a>
       </div>
       <div class="mini"><span><b>✓</b> NOTHING INSTALLED</span><span><b>✓</b> NO LIVE ACCESS</span><span><b>✓</b> NDPA 2023</span></div>
@@ -265,6 +291,24 @@
   </div>
 </div></section>
 
+<section id="field"><div class="wrap">
+  <div class="kick">Built for the field — and the community</div>
+  <h2>Revenue protection that reaches the last mile.</h2>
+  <p class="lead">Loss doesn't only live in spreadsheets — it lives on the ground. VoltIQ meets your field teams and the communities they serve in the language they actually speak.</p>
+  <div class="grid2">
+    <div class="card"><span class="hcorner bl"></span>
+      <div class="ic c1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg></div>
+      <h3>Multilingual by design</h3>
+      <p>Field tools and reports in <b>English, Hausa, Yoruba and Igbo</b> — so your crews and the customers they meet aren't forced to work in a second language, and nothing is lost in translation on the ground.</p>
+    </div>
+    <div class="card"><span class="hcorner bl"></span>
+      <div class="ic c3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <h3>Community Theft Reporting</h3>
+      <p>A public portal where residents flag suspected theft in their own neighbourhood — turning the community into an early-warning network and handing your revenue-protection team leads the data alone would never surface.</p>
+    </div>
+  </div>
+</div></section>
+
 <section id="why" class="sec-alt"><div class="wrap">
   <div class="kick">Why VoltIQ</div>
   <h2>Built to be trusted, not just impressive</h2>
@@ -291,7 +335,7 @@
     <span class="hcorner" style="bottom:-1px;right:-1px;border-left:none;border-top:none;border-radius:0 0 4px 0;"></span>
     <h2>Give us one feeder. We'll show you what's hiding in it.</h2>
     <p>A no-cost, no-risk 45-day pilot: one feeder, your historical data, a prioritised findings report in 5–7 business days — compliance evidence and a revenue-at-risk figure your own team verifies.</p>
-    <a class="btn primary" href="mailto:hassanmomoh@voltiqafrica.com?subject=VoltIQ%20Africa%20—%20Pilot%20enquiry">Start a pilot conversation</a>
+    <a class="btn primary" href="#" onclick="openAudit();return false;">Start a pilot conversation</a>
   </div>
 </div></section>
 
@@ -311,4 +355,47 @@
   <div class="legal">© 2026 VoltIQ Africa Limited · RC 9497459 · voltiq.africa — All data under mutual NDA &amp; the Nigeria Data Protection Act (2023).</div>
 </div></footer>
 
+<div class="mbg" id="auditModal">
+  <div class="modal">
+    <button class="x" onclick="closeAudit()" aria-label="Close">&times;</button>
+    <div class="mform" id="auditForm">
+      <h3>Request a free 3-feeder audit</h3>
+      <p class="msub">No cost, no hardware, no access to your live systems. Share historical data for up to three feeders &mdash; we return a prioritised findings report in 5&ndash;7 business days.</p>
+      <form onsubmit="return submitAudit(event)">
+        <input type="hidden" name="access_key" value="63bf57a4-abe9-4dce-bb98-bd4963163622">
+        <input type="hidden" name="subject" value="New VoltIQ feeder-audit request">
+        <input type="hidden" name="from_name" value="VoltIQ Africa website">
+        <input type="checkbox" name="botcheck" class="hidden" style="display:none">
+        <label>Full name</label><input name="name" required>
+        <label>Role / title</label><input name="role" placeholder="e.g. Head of Revenue Protection" required>
+        <label>DisCo</label><input name="disco" placeholder="e.g. KAEDCO" required>
+        <label>Official email</label><input type="email" name="email" required>
+        <label>Phone</label><input name="phone" required>
+        <button class="btn primary submit" type="submit">Request my audit</button>
+      </form>
+      <div class="contact">Or reach us directly: hassanmomoh@voltiqafrica.com</div>
+    </div>
+    <div class="ok" id="auditOk">
+      <div class="big">Request received.</div>
+      <p>Thank you &mdash; we&rsquo;ll be in touch within one business day to arrange your feeder audit.</p>
+    </div>
+  </div>
+</div>
+<script>
+function openAudit(){document.getElementById('auditModal').classList.add('open');document.body.style.overflow='hidden';}
+function closeAudit(){document.getElementById('auditModal').classList.remove('open');document.body.style.overflow='';}
+document.getElementById('auditModal').addEventListener('click',function(e){if(e.target===this)closeAudit();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAudit();});
+async function submitAudit(e){
+  e.preventDefault();
+  var data=Object.fromEntries(new FormData(e.target));
+  try{
+    var r=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(data)});
+    var j=await r.json();
+    if(j.success){document.getElementById('auditForm').style.display='none';document.getElementById('auditOk').style.display='block';}
+    else{alert('Could not send — please email hassanmomoh@voltiqafrica.com');}
+  }catch(err){alert('Could not send — please email hassanmomoh@voltiqafrica.com');}
+  return false;
+}
+</script>
 </body></html>
